@@ -11,7 +11,7 @@ This repo builds **Studyroom** (working name), a cozy isometric shared study roo
 - Every asset (model, audio) needs a license entry in `docs/ASSETS.md` (CC0 or explicit permission only).
 - Before finishing: `pnpm typecheck && pnpm lint && pnpm test && pnpm build` (+ `supabase test db` if SQL changed).
 - Users are minors: never add trackers, chat, a public directory or new personal data fields without a decision record.
-- **Stop and hand back to the builder** at every milestone gate, every real-device check (push, iOS install, strict mode on a phone) and every launch step. End your turn with a "Builder checks" list. Never mark those done yourself.
+- **Stop and hand back to the builder** at every milestone gate, every real-device check (push, iOS install, parental-consent email) and every launch step. End your turn with a "Builder checks" list. Never mark those done yourself.
 
 ## Skills (in `.claude/skills/`)
 

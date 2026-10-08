@@ -22,7 +22,7 @@ Mood: a small warm room at night. Desk lamps glowing, dusk-blue windows, paper a
 --dusk-2:     #44527D
 --leaf:       #6FA06B   focusing state
 --sky:        #7FB2D9   break state
---ember:      #E0654A   distracted / destructive
+--ember:      #E0654A   destructive / errors
 --muted:      #8A7F73   secondary text
 ```
 Day theme (06:00–18:00 local) swaps the background to `#E9DFCF` and windows to `#A9D3EE`. The room follows the **user's local time**: at night, lamps on, windows dark, a soft glow. That makes the 2am moment feel special.
@@ -47,7 +47,7 @@ Matches SPEC §10. Visual rules:
 - **Flat-shaded low-poly.** `MeshStandardMaterial({ flatShading: true, roughness: 0.85, metalness: 0 })`. No textures beyond a single shared **palette texture** (32 swatches, 256×8 PNG; UVs map faces to swatches, Kenney-style). Everything then shares one material and one draw-call-friendly look.
 - **Lighting:** warm key light from the lamp side (`#FFD9A0`), cool hemisphere fill (sky `#9DB4E0`, ground `#5A4636`). drei `<ContactShadows>` under furniture for grounding. At night, each lamp item adds a small point light (max 4 active, nearest to camera). Bloom (postprocessing) on lamps for desktop only.
 - **Camera:** orthographic, true isometric (yaw 45°, pitch ≈35.264°), slight vignette. Room floor is a raised slab with a visible edge (dollhouse cutaway), walls on the back two sides only.
-- **Bean avatar** (procedural, `src/scene/Bean.tsx`): capsule body (r 0.28, h 0.5), sphere head (r 0.26) overlapping the body, two small black eye spheres, a hair cap (scaled hemisphere). Colors from the four avatar slots, picked from curated swatches only (skin tones ×8, hair ×10, body/top ×16). An ink-colored outline via an inverted-hull mesh at 1.04 scale, so beans match the UI's 2px borders. States per SPEC §10 (writing bob, mug on break, turned away + ember "!" when distracted).
+- **Bean avatar** (procedural, `src/scene/Bean.tsx`): capsule body (r 0.28, h 0.5), sphere head (r 0.26) overlapping the body, two small black eye spheres, a hair cap (scaled hemisphere). Colors from the four avatar slots, picked from curated swatches only (skin tones ×8, hair ×10, body/top ×16). An ink-colored outline via an inverted-hull mesh at 1.04 scale, so beans match the UI's 2px borders. States per SPEC §10 (writing bob, mug on break).
 
 ## 3. Asset pipeline
 

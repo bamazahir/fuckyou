@@ -64,8 +64,9 @@ For every item: **evidence** (file:line, SQL output or command output) or it isn
 - Age gate present. The profanity filter runs on **every** text field other people can see. No free-text chat. No public room directory.
 
 ### E. Abuse & fairness
-- Can a user inflate leaderboards? Check multiple tabs, a manipulated clock, replayed RPCs, or pinging `visible` from a script. Record what's mitigated and what's accepted risk.
-- Push can only ever target the session owner (nags) or opted-in members (room active). Never arbitrary users.
+- Can a user inflate leaderboards? Check multiple tabs, a manipulated clock, replayed RPCs, or a stopwatch left running (check-ins). Record what's mitigated and what's accepted risk.
+- Push can only ever target the session owner (phase end, check-in) or opted-in members (room active). Never arbitrary users.
+- Consent: a `pending` user can reach no room data (pgTAP). Consent tokens are random, stored hashed, expire, and the parent page leaks nothing beyond the child's display name. Under-13 signups leave no data behind.
 - Reactions/nudges are rate-limited, and a removed member is dropped from the Realtime channel.
 - A voided session reverses its coins. A negative balance is handled.
 

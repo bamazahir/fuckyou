@@ -17,7 +17,6 @@
 1. **Alone at 2am → proud, not lonely.** If you are the only one in the room, the room says so warmly ("Night owl — you've had the room to yourself for 1h 12m").
 2. **Someone sits down → surprise.** When a member joins the room you're in: soft chime + their avatar walks to a desk + toast "Aisha just sat down".
 3. **Someone is in there right now → pull.** Room cards show live counts ("3 studying now"); opt-in push "3 people are studying in IB Chem".
-4. **Leaving to scroll → caught.** In strict ("phone face-down") rooms, leaving the app on your phone makes your bean stand up, red, in front of your mates, and a short escalating push sequence calls you back (§6.5).
 
 **Principles**
 - Unbloated: 4 primary screens (Home, Room, My Room, Profile). No feature gets a 5th screen in v1.
@@ -36,25 +35,24 @@
 ### In v1
 | # | Feature | Notes |
 |---|---|---|
-| F1 | Auth + profile | Google or email magic link. Handle + display name. 13+ self-declared. |
+| F1 | Auth + profile + consent | Google or email magic link. Handle + display name. Country + age bracket; under 13 blocked; parental consent below the country's digital-consent age (§13.1). |
 | F2 | Focus timer | Pomodoro (default 25/5, long break 15 every 4, all configurable) and Stopwatch. |
-| F3 | Rooms | Create, invite link/code, join, leave. Owner/mod/member roles. Honor (default) or Strict ("phone face-down") mode. Optional room-synced pomodoro. |
+| F3 | Rooms | Create, invite link/code, join, leave. Owner/mod/member roles. Optional room-synced pomodoro. |
 | F4 | Live presence | Who is in the room, what they're on (status line), live timer over their head. |
 | F5 | Room leaderboards | Tabs: Live sitting · This week (in room) · All-time (in room) · Lifetime (members' totals). |
-| F6 | Verification | Strict mode (phone sessions): the app must stay visible; desktop sessions in strict rooms run as honor and are labelled unverified. Honor mode: hidden time counts. End-of-session note. Owner can void sessions. |
-| F7 | Caught sequence | Strict phone sessions: pushes at 15s, 30s and 50s away, then one "session broke" push. Max 4 per session. |
+| F6 | Session integrity | Server-authoritative time, stopwatch check-ins, end-of-session note, owner can void sessions. No strict/anti-distraction mode in v1 (decision 0003). |
 | F8 | Reactions & nudges | Emote reactions + targeted nudge. No free-text chat. |
 | F9 | Isometric rooms | Shared room scene with avatars at desks; personal room. Edit mode to place furniture. |
 | F10 | Character | Procedural "bean" avatar: body/skin/hair/top colors + purchasable accessories. |
 | F11 | Coins & shop | Earn from completed focus. Spend on personal items, or donate to the room bank. The room bank also fills automatically from the room's study time. |
 | F12 | Ambient radio | Built-in stations (lofi, rain, café, brown noise). Room-synced. Now-playing panel + Media Session. |
-| F13 | Notifications | Phase-end, honor check-in, strict caught sequence, optional "room is active". Web push. |
+| F13 | Notifications | Phase-end, stopwatch check-in, optional "room is active". Web push. |
 | F14 | Privacy, safety & admin | Delete account, export data, privacy page, profanity filter, block + report, builder moderation queue, first-party metrics dashboard. |
 
 ### Deferred, and what unlocks each
 | Feature | Version | Unlock trigger |
 |---|---|---|
-| Chrome extension: hard-block TikTok, YouTube Shorts and IG Reels during sessions | v1.5 | v1 launched, and ≥5 weekly users, or your own data shows drift |
+| Chrome extension: hard-block TikTok, YouTube Shorts and IG Reels during sessions (the first anti-distraction feature) | v1.5 | v1 launched, and ≥5 weekly users, or your own data shows drift |
 | AI "explain yourself" pass for non-short-form sites (inside the extension; short-form is never unlockable) | v1.5 | Ships with the extension. Uses Claude `claude-haiku-5-5` via an Edge Function. |
 | Android native (Capacitor) + UsageStats detection of short-form apps | v2 | ≥30 weekly users, or ≥3 users asking |
 | iOS native (Capacitor). No app blocking; Screen Time APIs need an Apple entitlement. | v2 | After Android |
@@ -80,31 +78,29 @@
 
 Platform limits the product must respect (show them honestly in the UI):
 - iOS web push only works when the PWA is **installed to the Home Screen** (iOS 16.4+). Onboarding prompts installation on iOS.
-- A web app cannot see other apps. "Distracted" means "the app was not visible", nothing more.
-- Strict mode keeps the screen awake with the **Screen Wake Lock API** while a session runs.
-- **Strict applies to phone/tablet sessions only** (`matchMedia('(pointer: coarse)')` at session start; Capacitor builds later report the platform directly). On desktop, real study legitimately happens in other tabs (Docs, PDFs, Sheets), so a strict room's desktop sessions run under honor rules with an "unverified · desktop" label. The device class is stored on the session (`device`).
 
 ## 5. Screens & UX
 
 Navigation: bottom tab bar on mobile, left rail on desktop. Tabs: **Home · My Room · Profile**. The Room screen is pushed from Home.
 
-### 5.1 Onboarding (first run only, 3 steps)
+### 5.1 Onboarding (first run only, 3 steps + consent when needed)
 0. **Invite links show the room first.** `/j/:code` renders a public preview before any sign-in: room name, live count, the beans of who's in right now, and a "Join" button. (Uses `preview_room`, which returns only display names and avatars of present members.)
-1. Sign in (Google / email magic link). Checkbox "I'm 13 or older" (required).
+1. Sign in (Google / email magic link).
+1b. **Age & country** (§13.1): "Where do you live?" (country list, preselected from the browser locale) and "How old are you?" (Under 13 · 13 · 14 · 15 · 16–17 · 18+). Under 13 → friendly block and the auth user is deleted. Below the country's consent age → the parent/guardian email step, then a "Waiting for your parent" screen until consent is granted.
 2. Pick a handle (unique, 3–20 chars, `[a-z0-9_]`) and a display name.
 3. Make your bean: 4 color pickers (preset swatches only) + randomize.
 
-Then land in the invited room (or on **Home**). **There are no permission prompts in onboarding.** The notification permission, and on iOS the "Add to Home Screen to get notifications" sheet, are asked at first need: the first pomodoro start, the first strict session, or turning on "room is active".
+Then land in the invited room (or on **Home**). **There are no permission prompts in onboarding.** The notification permission, and on iOS the "Add to Home Screen to get notifications" sheet, are asked at first need: the first pomodoro start, or turning on "room is active".
 
 ### 5.2 Home
-- List of room cards: name, mode badge (Strict/Honor), live count ("3 studying now", pulsing dot), your rank this week.
+- List of room cards: name, sync badge if the room runs a shared pomodoro, live count ("3 studying now", pulsing dot), your rank this week.
 - Buttons: **Create room**, **Join with code**.
 - "Solo" entry: study in your personal room (a room with only you; same timer, no leaderboard).
 
 ### 5.3 Room (the main screen)
 Layout, mobile portrait:
-- **Top bar:** room name, mode badge, members-present count, ⋯ menu (invite, settings for owner/mods, leave).
-- **Scene (≈55% height):** isometric shared room. Present members' avatars sit at desks, with a floating label above each: name + timer `42:10` + state color (green focusing, blue break, red distracted). Tap an avatar to open a mini profile (status line, this-week minutes, "Visit room", "Nudge", ⋯ "Block" / "Report").
+- **Top bar:** room name, members-present count, ⋯ menu (invite, settings for owner/mods, leave).
+- **Scene (≈55% height):** isometric shared room. Present members' avatars sit at desks, with a floating label above each: name + timer `42:10` + state color (green focusing, blue break). Tap an avatar to open a mini profile (status line, this-week minutes, "Visit room", "Nudge", ⋯ "Block" / "Report").
 - **Timer dock:** big timer, mode toggle Pomodoro/Stopwatch, optional status line ("HL Chem IA — data analysis", ≤60 chars), Start / Break / End. In rooms with sync pomodoro on, the dock shows the shared cycle instead ("Focus · 12:04 left · 6 of you" / "Break together · 3:10"), and Start joins the current phase (§6.2.1).
 - **Bottom sheet tabs (swipe up):** Leaderboard · Radio · Members.
 - **Reaction bar:** 👋 🔥 ☕ 💪 🌙. Tapping one shows the emote over your avatar for everyone.
@@ -119,7 +115,7 @@ Empty and alone states:
 Your personal isometric room. Visitors (roommates) see it read-only. Buttons: **Edit** (place, rotate, remove items from inventory), **Shop**, **Avatar**. Coin balance top-right.
 
 ### 5.5 Profile / Settings
-Stats (lifetime hours, this week, current streak of days studied ≥25 min). Settings: timer defaults, sounds, notification toggles (per type; per room for "room is active"), caught-sequence opt-out, export data, delete account, privacy policy, sign out.
+Stats (lifetime hours, this week, current streak of days studied ≥25 min). Settings: timer defaults, sounds, notification toggles (per type; per room for "room is active"), export data, delete account, privacy policy, sign out.
 
 ### 5.6 End-of-session sheet
 Appears when a focus block ends (or on return after it ended in the background):
@@ -130,7 +126,7 @@ Appears when a focus block ends (or on return after it ended in the background):
 
 Terminology:
 - **Session** = one focus block (a single pomodoro focus phase, or one stopwatch run). Breaks are not sessions and are not stored.
-- **Sitting** = a chain of sessions by the same user in the same room, where each gap is ≤ 20 min. The "Live sitting" leaderboard shows focus minutes in the current sitting. **Assignment (in `start_session`):** reuse the `sitting_id` of the user's most recent session in the same room if that session's status is `completed` and it ended ≤ 20 min ago; otherwise generate a new uuid. A `broken` session always ends the sitting.
+- **Sitting** = a chain of sessions by the same user in the same room, where each gap is ≤ 20 min. The "Live sitting" leaderboard shows focus minutes in the current sitting. **Assignment (in `start_session`):** reuse the `sitting_id` of the user's most recent session in the same room if that session's status is `completed` and it ended ≤ 20 min ago; otherwise generate a new uuid.
 
 ### 6.1 Server-authoritative time
 The client never sends durations. All timestamps are `now()` on the server, via RPCs (§8.3).
@@ -142,10 +138,9 @@ Clients **display** time using a server clock: `serverNow() = Date.now() + offse
             start_session()
   (none) ─────────────────► active ──end_session(note)──────────► completed
                               │  ├──server: planned end reached ─► completed (note pending)
-                              │  ├──server: strict away > 60s ───► broken
-                              │  ├──server: honor check-in missed► completed at check-in due time
+                              │  ├──server: check-in missed ─────► completed at check-in due time
                               │  └──server: 4h hard cap ─────────► completed at cap
-  owner/mod void_session() on completed|broken ─────────────────► voided
+  owner/mod void_session() on completed ───────────────────────► voided
 ```
 - One active session per user. `start_session` ends any previous active session as `completed`.
 - **Pomodoro:** `planned_seconds` = focus length. Reaching it completes the session (cron), sends a "Break time" push if the app isn't visible, and the client starts a local break countdown. After the break the client shows "Start next focus" (no auto-start in v1).
@@ -159,52 +154,30 @@ Clients **display** time using a server clock: `serverNow() = Date.now() + offse
 - Breaks are shared: the reaction bar is emphasised during breaks, and nudges are muted during shared focus.
 - Stopwatch is unavailable in sync rooms.
 
-### 6.3 Strict mode (room setting; phone sessions only, see §4)
-- A session is **verified** when it runs in a strict room on a phone/tablet (`sessions.verified = true`). Desktop sessions in strict rooms are honor sessions with `verified = false`.
-- For verified sessions the client calls `session_ping(visible=true)` every **10s** while visible, and `session_ping(visible=false)` immediately on `visibilitychange → hidden` (sent with `fetch(..., {keepalive:true})`).
-- The server marks the user **away** when either a hidden ping arrives, or `last_visible_at` is more than **25s** old (the hidden ping was lost, e.g. the OS killed the tab). Then `away_since = last_visible_at`. The ping interval (10s) is always shorter than the stale threshold (25s), so a user looking at the screen is never flagged.
-- Away state is published **by the server** (§9), not by the client, because a backgrounded tab's realtime socket dies.
-- If away > 60s, the session becomes `broken` with `ended_at = last_visible_at`. Focus seconds count up to that point (leaderboards), but **coins are forfeited** and the sitting ends.
-- Returning within 60s (any visible ping): back to focusing. Away time is excluded from `focus_seconds`.
-- Wake Lock is requested on start, and re-requested on visibility return.
+### 6.3 Check-ins and away time
+- Leaving the app or locking the phone is fine: a session runs on server time whether or not the app is visible.
+- Pomodoro: completes at the planned end on server time.
+- Stopwatch: every 50 min a check-in is due ("Still studying?" push + in-app button). If no check-in within 10 min, the session completes at the time the check-in was due. This stops a forgotten stopwatch from running all night.
+- There is no strict/anti-distraction mode in v1 (decision 0003). The v1.5 Chrome extension is the first feature that verifies focus.
 
-### 6.4 Honor mode (room setting)
-- Hidden time counts. The phone can be locked face-down.
-- Pomodoro: completes at the planned end on server time, regardless of pings.
-- Stopwatch: every 50 min a check-in is due ("Still studying?" push + in-app button). If no check-in within 10 min, the session completes at the time the check-in was due.
-- No caught sequence in honor mode.
-
-### 6.5 Caught sequence (verified strict sessions only)
-At most **4 pushes per session**, timed from `away_since`, with escalating copy that uses real people where possible:
-1. **+15s:** "Your bean just stood up 👀 Come back to {room}"
-2. **+30s:** "{n} people are still studying. 30s until your session breaks"
-3. **+50s:** "10 seconds. {name} is still going"
-4. **+60s (broken):** "Session broke at {mm:ss}. {name} is still at their desk. Start again?"
-
-- If away was detected late (stale-ping path), send only the most recent due push, never a backlog.
-- Returning cancels the remaining pushes. **Nothing is sent after the "broke" push.**
-- The user can turn the sequence off in settings (the in-room red bean still happens; that's the real sting).
-- No push permission → in-app only (seen on return).
-
-### 6.6 Accounting
-- `focus_seconds` = (ended_at − started_at) − away_seconds, clamped to [0, 4h]. The server computes it in `end_session` and in the cron finalizer.
-- Strict away intervals are recorded in `session_events` (`hidden` / `visible` with server timestamps). `away_seconds` = the sum of hidden intervals.
+### 6.4 Accounting
+- `focus_seconds` = ended_at − started_at, clamped to [0, 4h]. The server computes it in `end_session` and in the cron finalizer.
 - Week boundary: Monday 00:00 in the **room's** timezone (`rooms.tz`, defaulting to the owner's browser TZ at creation). The personal "this week" uses the profile TZ.
 
-### 6.7 Coins
+### 6.5 Coins
 - Earn: **1 coin per focus minute** (floor) for `completed` sessions with a note submitted, **+5** bonus for a completed pomodoro whose planned length was ≥ 20 min.
 - Daily earn cap: 720 coins (profile TZ).
-- `broken` and `voided` earn 0. Voiding a session that had already paid out writes a negative ledger entry. The balance can go negative and is shown as 0 with a debt note.
+- `voided` earns 0. Voiding a session that had already paid out writes a negative ledger entry. The balance can go negative and is shown as 0 with a debt note.
 - Spending: buy catalog items (personal inventory), or donate any amount to a room bank. Owner/mods buy room items from the bank.
-- **Room bank auto-fill:** every `completed` or `broken` session in a shared (non-personal) room adds `floor(focus_minutes / 2)` coins to that room's bank, on top of the member's own earnings (nothing is deducted from the member). Per member per room per day, at most 360 coins. Voiding a session reverses its bank contribution. Recorded in `room_bank_ledger`.
+- **Room bank auto-fill:** every `completed` session in a shared (non-personal) room adds `floor(focus_minutes / 2)` coins to that room's bank, on top of the member's own earnings (nothing is deducted from the member). Per member per room per day, at most 360 coins. Voiding a session reverses its bank contribution. Recorded in `room_bank_ledger`.
 
 ## 7. Rooms, roles, moderation
 
-- Create: name (3–40 chars), mode (**Honor default**; Strict is selectable once M3 ships), tz, sync pomodoro on/off. The creator becomes owner.
+- Create: name (3–40 chars), tz, sync pomodoro on/off. The creator becomes owner.
 - Invite: `https://<host>/j/<invite_code>` (8 chars, base32). Owner/mods can regenerate the code (the old link dies).
-- Limits: 50 members per room; 20 rooms per user; 10 rooms created per user (personal rooms excluded). The personal room uses the same timer; its owner picks Strict or Honor.
+- Limits: 50 members per room; 20 rooms per user; 10 rooms created per user (personal rooms excluded). The personal room uses the same timer.
 - Roles: `owner` (1) · `mod` · `member`. The owner can promote or demote mods and transfer ownership.
-- Owner/mod actions: remove (ban) a member, void a session (reason required, shown to that member), change mode (applies to new sessions only), rename, regenerate the invite, spend the room bank, edit the room layout.
+- Owner/mod actions: remove (ban) a member, void a session (reason required, shown to that member), change sync settings, rename, regenerate the invite, spend the room bank, edit the room layout.
 - If the owner deletes their account, ownership passes to the longest-standing mod, then the longest-standing member. With no members left, the room is deleted.
 - Members can leave any time. Their history in the room stays on leaderboards as "former member" (display name hidden, shown as "Former member").
 - **Safety above the room owner** (owners are minors too):
@@ -226,6 +199,9 @@ profiles(
   display_name text not null check (char_length(display_name) between 1 and 30),
   avatar jsonb not null default '{}',          -- {colors:{body,skin,hair,top}, accessories:[item_id]}
   tz text not null default 'UTC',
+  country text not null check (country ~ '^[A-Z]{2}$'),
+  age_bracket text not null check (age_bracket in ('13','14','15','16-17','18+')),
+  consent_status text not null check (consent_status in ('not_required','pending','granted')),
   settings jsonb not null default '{}',        -- timer defaults, notification toggles
   is_admin boolean not null default false,
   created_at timestamptz not null default now()
@@ -235,7 +211,6 @@ rooms(
   id uuid pk default gen_random_uuid(),
   name text not null check (char_length(name) between 3 and 40),
   owner_id uuid not null references profiles,
-  mode text not null default 'honor' check (mode in ('strict','honor')),
   tz text not null,
   sync_pomodoro boolean not null default false,
   sync_focus_s int not null default 1500 check (sync_focus_s between 600 and 5400),
@@ -265,20 +240,12 @@ sessions(
   room_id uuid not null references rooms on delete cascade,
   sitting_id uuid not null,
   kind text not null check (kind in ('pomodoro','stopwatch')),
-  mode text not null check (mode in ('strict','honor')),   -- snapshot of the room mode at start
-  device text not null check (device in ('phone','desktop')),
-  verified boolean not null default false,                  -- strict room AND phone (§6.3)
-  status text not null default 'active' check (status in ('active','completed','broken','voided')),
+  status text not null default 'active' check (status in ('active','completed','voided')),
   status_line text check (char_length(status_line) <= 60),
   planned_seconds int,
   started_at timestamptz not null default now(),
   ended_at timestamptz,
-  last_visible_at timestamptz not null default now(),
-  away_since timestamptz,
-  away_seconds int not null default 0,
-  next_checkin_at timestamptz,                  -- honor stopwatch
-  last_ping_hidden boolean not null default false,
-  nags_sent int not null default 0 check (nags_sent between 0 and 4),
+  next_checkin_at timestamptz,                  -- stopwatch
   focus_seconds int,
   note text check (char_length(note) between 3 and 140),
   note_public boolean not null default false,
@@ -286,9 +253,6 @@ sessions(
   void_reason text
 )
 -- indexes: (user_id) where status='active' unique; (room_id, started_at); (status) where status='active'
-
-session_events(id bigserial pk, session_id uuid references sessions on delete cascade,
-               type text check (type in ('hidden','visible','checkin')), at timestamptz default now())
 
 catalog_items(id text pk, name text, category text check (category in ('furniture','decor','desk','accessory')),
               price int, footprint_w int, footprint_d int, wall boolean default false,
@@ -314,7 +278,7 @@ push_subscriptions(id bigserial pk, user_id uuid references profiles on delete c
                    endpoint text unique, p256dh text, auth text, created_at timestamptz default now())
 
 notify_queue(id bigserial pk, user_id uuid references profiles on delete cascade,
-             kind text check (kind in ('caught','phase_end','checkin','room_active')),
+             kind text check (kind in ('phase_end','checkin','room_active','consent_email')),
              payload jsonb not null, send_after timestamptz not null default now(),
              sent_at timestamptz, created_at timestamptz default now())
 -- filled by tick() and by an AFTER INSERT trigger on sessions (room_active); drained by the `push` Edge Function
@@ -330,6 +294,18 @@ reports(id bigserial pk, reporter_id uuid references profiles on delete set null
         status text not null default 'open' check (status in ('open','actioned','dismissed')),
         created_at timestamptz default now())
 
+consent_ages(country text pk, consent_age int not null check (consent_age between 13 and 18))
+-- seeded from src/content/consent-ages.json; countries not listed use 16
+
+parental_consents(user_id uuid pk references profiles on delete cascade,
+                  parent_email text,                 -- cleared once consent is granted or declined
+                  parent_email_hash text not null,   -- sha256, kept as the consent record
+                  token_hash text not null,          -- sha256 of the emailed token; reused for withdrawal
+                  sends int not null default 1 check (sends <= 3),
+                  last_sent_at timestamptz not null default now(),
+                  expires_at timestamptz not null,   -- 7 days after first send
+                  granted_at timestamptz, declined_at timestamptz, withdrawn_at timestamptz)
+
 events(id bigserial pk, user_id uuid references profiles on delete set null,
        name text not null, props jsonb default '{}', at timestamptz default now())
 -- retention: delete rows older than 400 days (cron daily)
@@ -343,6 +319,8 @@ events(id bigserial pk, user_id uuid references profiles on delete set null,
 - `coin_ledger`, `inventory`: own only, read-only; writes via RPC.
 - `events`: insert own; select only `is_admin`.
 - `push_subscriptions`, `blocks`: own only.
+- `consent_ages`: readable by all. `parental_consents`: no client access (RPCs/Edge Functions only).
+- **Gate:** every room-related RPC and RLS policy requires the caller's `consent_status in ('not_required','granted')`. Pending users can do nothing except see the waiting screen, resend the email (max 3), change the parent email, or delete their account.
 - `reports`: insert own. Select: admin, plus owner/mods of `room_id` (except reports targeting themselves).
 - `room_bank_ledger`: select by members of the room; writes via RPC/trigger only.
 - `notify_queue`: no client access (service role only).
@@ -354,18 +332,17 @@ preview_room(code) -> {id, name, member_count, mode}
 join_room(code) -> room              -- rejects banned, full, or over the user's room limit
 leave_room(room_id)
 regen_invite(room_id) -> code                        -- owner/mod
-set_room(room_id, name?, mode?, station_id?, sync_pomodoro?, sync_focus_s?, sync_break_s?)   -- owner/mod
+set_room(room_id, name?, station_id?, sync_pomodoro?, sync_focus_s?, sync_break_s?)   -- owner/mod
 set_role(room_id, user_id, role)                     -- owner
 remove_member(room_id, user_id)                      -- owner/mod; sets banned
 transfer_ownership(room_id, user_id)                 -- owner
 
 server_time() -> timestamptz
-room_live(room_id) -> [{user_id, display_name, avatar, state:'focus'|'break'|'distracted', session_started_at, planned_seconds, away_since, verified, status_line}]
+room_live(room_id) -> [{user_id, display_name, avatar, state:'focus'|'break', session_started_at, planned_seconds, status_line}]
    -- the source of truth for who is studying (active sessions); see §9
 
-start_session(room_id, kind, device, planned_seconds?, status_line?) -> session
-   -- sets verified, sitting_id (§6), and in sync rooms planned_seconds (§6.2.1)
-session_ping(session_id, visible bool) -> {status, away_seconds}
+start_session(room_id, kind, planned_seconds?, status_line?) -> session
+   -- sets sitting_id (§6), and in sync rooms planned_seconds (§6.2.1)
 checkin(session_id)
 end_session(session_id) -> session
 submit_note(session_id, note, public bool) -> {coins_awarded}   -- within 24h of ended_at
@@ -373,12 +350,9 @@ void_session(session_id, reason)                                 -- owner/mod of
 
 leaderboard(room_id, tab text) -> [{user_id, display_name, avatar, seconds, rank, is_present}]
    -- tab: 'live' | 'week' | 'alltime' | 'lifetime'
-   -- live: members with an active or <20-min-gap sitting, sum focus in the current sitting (active sessions count elapsed minus away)
-   -- week/alltime: sum focus_seconds of completed+broken sessions in this room
+   -- live: members with an active or <20-min-gap sitting, sum focus in the current sitting (active sessions count elapsed time)
+   -- week/alltime: sum focus_seconds of completed sessions in this room
    -- lifetime: sum over all rooms for current members
-   -- fairness: in a STRICT room every tab (incl. lifetime) counts only verified sessions by default;
-   --   optional param include_unverified=true shows all, with unverified minutes marked.
-   --   In an HONOR room all non-voided sessions count. Personal rooms never contribute to a strict room's lifetime.
 
 buy_item(item_id, qty) ; donate(room_id, amount) ; room_buy_item(room_id, item_id, qty)
 save_layout(room_id, layout jsonb)    -- validates each item is owned and placements are within the grid with no overlap (shared helper mirrored in SQL)
@@ -387,28 +361,30 @@ log_event(name, props)
 block_user(user_id) ; unblock_user(user_id)
 report(target_type, target_id, room_id?, reason, note?)
 admin_resolve_report(id, action) ; admin_ban_user(user_id) ; admin_delete_room(room_id)   -- is_admin only
+complete_profile(handle, display_name, country, age_bracket) -> {consent_status}   -- server resolves consent age; under 13 rejected
+request_parental_consent(parent_email)   -- enqueues consent_email; max 3 sends; rejects the user's own email
+consent_view(token) -> {child_display_name, summary}    -- public, for the parent page
+consent_decide(token, decision 'grant'|'decline'|'withdraw')   -- public; decline/withdraw delete the child's account
 delete_my_account() ; export_my_data() -> jsonb
 ```
 
 ## 9. Realtime & background jobs
 
 **Realtime channels** (Supabase Realtime):
-- **Who is studying comes from the server, not from presence.** The room view renders the result of `room_live(room_id)`: fetched on open, every 15s, and immediately on any `state` broadcast. A user whose phone is backgrounded therefore still appears at their desk, as **distracted**, even though their socket is gone.
+- **Who is studying comes from the server, not from presence.** The room view renders the result of `room_live(room_id)`: fetched on open, every 15s, and immediately on any `state` broadcast. A user whose phone is locked therefore still appears at their desk, studying, even though their socket is gone.
 - `room:{id}` **Presence**: only adds "online now" (members who have the room open but no active session), plus the join chime/toast. Payload `{user_id}`.
-- **Server broadcasts:** `tick()` and the session RPCs publish `state {user_id, state}` to `room:{id}` on every transition (focus, break, distracted, back, broken, ended) using Supabase Realtime's database broadcast (`realtime.send`).
+- **Server broadcasts:** `tick()` and the session RPCs publish `state {user_id, state}` to `room:{id}` on every transition (focus, break, ended) using Supabase Realtime's database broadcast (`realtime.send`).
 - `room:{id}` **Broadcast**: `reaction {from, emoji}`, `nudge {from, to}`, `joined {user_id}`. Client-side rate limit: 1 per 3s per sender.
 - Postgres changes are not used (they cost too much and RLS makes them complex). Leaderboards refetch on session end events and every 60s while open.
 
 **Cron: pg_cron runs the SQL function `tick()` every 10 seconds.** All transitions happen in SQL. Pushes are written to `notify_queue`, and `tick()` calls the Edge Function `push` via pg_net **only when the queue has unsent rows** (so there are no Edge invocations when nothing is due).
-1. **Away detection** (verified sessions): `away_since is null and (last_ping_hidden or last_visible_at < now() - 25s)` → `away_since = last_visible_at`; broadcast `distracted`.
-2. **Caught sequence:** for away sessions, enqueue the push whose time (`away_since + 15s / 30s / 50s`) has passed and whose index is greater than `nags_sent`. Only the latest due one; set `nags_sent` (§6.5).
-3. **Break:** away > 60s → `broken`, `ended_at = last_visible_at`, compute focus, enqueue push #4, broadcast `broken`.
-4. **Pomodoro end:** planned end reached → `completed`, compute focus, enqueue "Break time ☕" (skipped if a visible ping arrived in the last 15s; the open client handles it), broadcast `break`.
-5. **Honor check-in:** `next_checkin_at <= now()` → enqueue "Still studying?" once, then a 10-min window; if missed → complete at `next_checkin_at`.
-6. **4h cap.**
-7. **Room is active:** not done by the tick. An `AFTER INSERT` trigger on `sessions` enqueues `room_active` rows for members with `notify_active = true` who aren't currently studying in that room and haven't had one for that room in the last 2h (and who haven't blocked the starter). The tick only drains the queue.
+1. **Pomodoro end:** planned end reached → `completed`, compute focus, enqueue "Break time ☕" (skipped if the user's client called `end_session` already), broadcast `break`.
+2. **Check-in:** `next_checkin_at <= now()` → enqueue "Still studying?" once, then a 10-min window; if missed → complete at `next_checkin_at`.
+3. **4h cap.**
+4. **Consent expiry:** pending consents past `expires_at` → delete the child's account.
+5. **Room is active:** not done by the tick. An `AFTER INSERT` trigger on `sessions` enqueues `room_active` rows for members with `notify_active = true` who aren't currently studying in that room and haven't had one for that room in the last 2h (and who haven't blocked the starter). The tick only drains the queue.
 
-`push` Edge Function: authenticated by a shared secret header (set in Vault, sent by pg_net), sends Web Push with VAPID, marks rows `sent_at`, deletes subscriptions that answer 404/410.
+`push` Edge Function: authenticated by a shared secret header (set in Vault, sent by pg_net), sends Web Push with VAPID, marks rows `sent_at`, deletes subscriptions that answer 404/410. `consent_email` rows are sent as email through **Resend** (the only email processor; listed on `/privacy`), from a verified sender domain.
 
 Daily cron: purge `events` older than 400 days; purge `notify_queue` rows older than 7 days.
 
@@ -422,7 +398,7 @@ Every transition is idempotent: `UPDATE ... WHERE status = 'active' AND <conditi
 - Edit mode: tap inventory item → ghost follows pointer, snapped to the grid (red if invalid) → tap to place; selected item: rotate / move / return to inventory. Save is explicit.
 - **Seats:** catalog items with `seat=true` (desks, chairs, cushions) expose a seat anchor. Present members are assigned seats in join order. Overflow members sit on auto-placed floor cushions along the front edge.
 - Avatar labels: drei `<Html>` with name + timer + state dot; hidden when more than 12 are present (show on tap instead).
-- **Avatar ("bean"):** procedural capsule body + sphere head + hair cap mesh, four color slots, eyes as small spheres. Built in code (`src/scene/Bean.tsx`) with zero asset dependency. Accessories (hat, glasses, headphones, scarf) are small GLBs or procedural meshes attached to a head anchor. Idle animation: gentle bob; focusing: "writing" bob; distracted: turns away + red "!" bubble; break: holds a mug.
+- **Avatar ("bean"):** procedural capsule body + sphere head + hair cap mesh, four color slots, eyes as small spheres. Built in code (`src/scene/Bean.tsx`) with zero asset dependency. Accessories (hat, glasses, headphones, scarf) are small GLBs or procedural meshes attached to a head anchor. Idle animation: gentle bob; focusing: "writing" bob; break: holds a mug.
 - **Assets:** low-poly CC0 furniture GLBs (candidate: Kenney "Furniture Kit", CC0 — verify the license in M4 and record it in `docs/ASSETS.md`). Compress with `gltf-transform` (Draco/meshopt). Budget: ≤ 2 MB of models for the default room. Lazy-load the shop catalog models.
 - Default content: the starter personal room has a desk, chair, rug, lamp and plant. The starter shared room has 4 desks + 4 chairs, a rug, a bookshelf and a window. Catalog v1: ~40 items (≈30 furniture/decor, ≈10 accessories) in `src/content/catalog.json` with prices 20–1500 coins.
 
@@ -438,14 +414,14 @@ Every transition is idempotent: `UPDATE ... WHERE status = 'active' AND <conditi
 ## 12. Metrics (first-party only)
 
 `log_event` names (no other events; props must contain no free text):
-`signup`, `onboarding_done`, `room_created`, `room_joined`, `session_started{kind,mode}`, `session_completed{kind,mode,focus_min}`, `session_broken`, `caught_push_sent{n}`, `note_submitted`, `reaction_sent`, `nudge_sent`, `item_bought`, `donated`, `push_enabled`, `pwa_installed`, `app_open`, `report_filed`, `user_blocked`.
+`signup`, `onboarding_done`, `room_created`, `room_joined`, `session_started{kind}`, `session_completed{kind,focus_min}`, `consent_requested`, `consent_granted`, `note_submitted`, `reaction_sent`, `nudge_sent`, `item_bought`, `donated`, `push_enabled`, `pwa_installed`, `app_open`, `report_filed`, `user_blocked`.
 
-Admin page `/admin` (`is_admin` only): WAU/DAU (users with ≥1 completed session), D1/D7/D30 retention by signup week, hours studied per week (excluding the admin), sessions per user per week, strict vs. honor mix, broken-session rate. A CSV export button. These charts are the application evidence.
+Admin page `/admin` (`is_admin` only): WAU/DAU (users with ≥1 completed session), D1/D7/D30 retention by signup week, hours studied per week (excluding the admin), sessions per user per week, sync vs. solo pomodoro mix. A CSV export button. These charts are the application evidence.
 
 ## 13. Privacy & safety (non-negotiable)
 
 - Collected: email (auth only, never shown), handle, display name, avatar, timezone, sessions, optional notes, coins, push endpoints, the events above. **No** real name, birthday, location, contacts or analytics SDKs.
-- Age gate: self-declared 13+. Under-13 → blocked with a friendly message. **Accepted risk** (decision 0002): some countries set the digital-consent age at 16. Revisit before any school-wide rollout or before inviting users outside the builder's own school.
+- Age & consent: see §13.1.
 - No free-text visible to others except display name, handle, room names, status line and public notes. All of these pass a small profanity filter (`src/core/filter.ts`, word list) and length limits. Owners/mods remove offenders.
 - No public room directory. Rooms are reachable only via invite.
 - Self-serve **Delete account** (hard delete, cascades) and **Export my data** (JSON).
@@ -453,6 +429,23 @@ Admin page `/admin` (`is_admin` only): WAU/DAU (users with ≥1 completed sessio
 - Block + report for every user, plus the builder's moderation queue (§7).
 - **Application evidence uses aggregates only** (counts, hours, retention curves), never names or notes. The privacy page says so in plain words.
 - If ever rolled out through a school: talk to the school first (their data policy applies). That's out of scope for v1.
+
+### 13.1 Age of digital consent
+- At signup the user picks a **country** and an **age bracket** (§5.1). No birthday is stored. The server (`complete_profile`) looks up `consent_ages`. Unknown or unlisted countries use **16**, the strictest common value.
+- **Under 13:** blocked everywhere (COPPA and most of the world). The auth user is deleted immediately.
+- **13 up to the consent age:** a parent/guardian must consent before the account can do anything (§8.2 gate).
+  - The child enters the parent's email. The `consent_email` is sent via Resend, with a 7-day link `/consent/:token`.
+  - The parent page explains in plain words what is collected, who sees what, and that there are no ads or tracking. Buttons: **I'm their parent/guardian and I agree** / **Decline**.
+  - Grant → `consent_status = granted`. The parent email is cleared, and its hash is kept as the record. The same email carries a permanent **withdraw consent** link.
+  - Decline, withdrawal, or no answer within 7 days → the child's account and all their data are deleted.
+- **At or above the consent age:** `not_required`.
+- `src/content/consent-ages.json` (mirrored into `consent_ages`) starts with these values. **Verify every entry against a current primary source before M2, and record the sources in the file:**
+  - **13:** BE, DK, EE, FI, LV, MT, PT, SE, NO, IS, GB, US, CA, AU, NZ
+  - **14:** AT, BG, CY, ES, IT, LT, CN, KR
+  - **15:** CZ, FR, GR, SI
+  - **16:** DE, HR, HU, IE, LU, NL, PL, RO, SK, LI (and the default)
+  - **18:** IN
+- Age is self-declared (no ID checks). That is the accepted standard for this kind of app; recorded in decision 0003.
 
 ## 14. Repo layout
 
@@ -469,16 +462,16 @@ Admin page `/admin` (`is_admin` only): WAU/DAU (users with ≥1 completed sessio
 │  ├─ core/         # PURE TS, no React/Supabase imports, 100% unit tested
 │  │   timer.ts (pomodoro/stopwatch state machine), accounting.ts, coins.ts,
 │  │   grid.ts, radio.ts, sync.ts (shared pomodoro cycle), servertime.ts, week.ts,
-│  │   filter.ts, leaderboard.ts (formatting/ranking), caught.ts (nag schedule)
-│  ├─ lib/          # supabase.ts, push.ts, wakelock.ts, visibility.ts, events.ts
+│  │   filter.ts, leaderboard.ts (formatting/ranking), consent.ts (consent-age lookup)
+│  ├─ lib/          # supabase.ts, push.ts, events.ts
 │  ├─ stores/       # zustand: session.ts, room.ts, ui.ts
 │  ├─ features/     # auth/ onboarding/ home/ room/ timer/ leaderboard/ radio/
 │  │                # myroom/ shop/ avatar/ profile/ admin/ privacy/
 │  ├─ scene/        # Canvas setup, IsoCamera, Room, Item, Bean, Seats, EditMode
-│  └─ content/      # catalog.json, stations.json, copy.ts (all user-facing strings incl. nag copy)
+│  └─ content/      # catalog.json, stations.json, consent-ages.json, copy.ts (all user-facing strings)
 ├─ supabase/
 │  ├─ migrations/   # 0001_init.sql ... (tables, RLS, RPCs, tick(), cron)
-│  ├─ functions/push/index.ts (drains notify_queue)
+│  ├─ functions/push/index.ts (drains notify_queue: web push + consent emails)
 │  ├─ tests/        # pgTAP: rls.sql, sessions.sql, coins.sql, rooms.sql
 │  └─ seed.sql      # catalog seed + demo users for local dev
 ├─ e2e/             # Playwright smoke tests
@@ -494,22 +487,22 @@ Vite+React+TS+Tailwind+Router, vite-plugin-pwa with manifest + icons, ESLint/Pre
 *Accept:* the deployed URL is installable as a PWA; CI is green.
 
 **M1 — Auth + solo timer + history**
-Migrations for profiles, rooms (personal), sessions, session_events, events. Auth + onboarding steps 1–3. Personal room auto-created on signup (trigger). `core/timer.ts`, `core/accounting.ts`, `core/servertime.ts` with tests. RPCs `server_time`, start/ping/end/submit_note (sitting assignment per §6). Timer dock UI (pomodoro + stopwatch), end-of-session sheet (minutes only; no coins UI yet), history list in Profile. `tick()` steps 4, 5, 6 (queue rows are written but not sent until M3). `log_event` from day one, so evidence accumulates.
+Migrations for profiles, consent_ages, rooms (personal), sessions, events. Auth + onboarding steps 1–3 incl. step 1b (country + age bracket; under-13 block; users who need consent land on the waiting screen, and the email flow arrives in M2). Personal room auto-created on signup (trigger). `core/timer.ts`, `core/accounting.ts`, `core/servertime.ts` with tests. RPCs `server_time`, `complete_profile`, start/checkin/end/submit_note (sitting assignment per §6). Timer dock UI (pomodoro + stopwatch), end-of-session sheet (minutes only; no coins UI yet), history list in Profile. `tick()` steps 1–3 (queue rows are written but not sent until M3). `log_event` from day one, so evidence accumulates.
 *Accept:* pgTAP proves the client can't write durations; refreshing mid-session resumes correctly; a pomodoro completes server-side with the tab closed.
 *Gate:* the builder uses it on 3 separate days.
 
 **M2 — Rooms, live state, leaderboards, reactions, privacy & safety basics**
-Room tables/RPCs + RLS tests. Home room cards with live counts. Invite flow with the **public room preview before sign-in** (§5.1). Room screen as a **2D members view** (desks as cards; the isometric scene comes in M4) driven by `room_live` + server `state` broadcasts + presence for "online now". Join chime + toast, alone/night-owl banner, the 4 leaderboard tabs with the fairness rules (§8.3), reactions + nudges, owner/mod tools (remove, void, regen invite, roles). Rooms are honor-only at this point. **Privacy & safety basics:** `/privacy`, delete account, export data, the profanity filter on every public text field, block + report, and `/admin/reports`.
-*Accept:* two browsers see each other's state change within 2s; leaderboard numbers match the SQL tests; the deletion test leaves no rows referencing the user.
+Room tables/RPCs + RLS tests. Home room cards with live counts. Invite flow with the **public room preview before sign-in** (§5.1). Room screen as a **2D members view** (desks as cards; the isometric scene comes in M4) driven by `room_live` + server `state` broadcasts + presence for "online now". Join chime + toast, alone/night-owl banner, the 4 leaderboard tabs with the fairness rules (§8.3), reactions + nudges, owner/mod tools (remove, void, regen invite, roles). **Parental consent flow** (§13.1): `request_parental_consent`, the `/consent/:token` parent page, `consent_decide`, expiry in `tick()`, email via Resend; this is the first part of the `push` Edge Function. **Privacy & safety basics:** `/privacy`, delete account, export data, the profanity filter on every public text field, block + report, and `/admin/reports`.
+*Accept:* two browsers see each other's state change within 2s; leaderboard numbers match the SQL tests; the deletion test leaves no rows referencing the user; pgTAP proves a `pending` user can't touch any room data; the consent grant/decline/withdraw/expiry paths each have a test.
 *Gate (friendly alpha):* 2–3 trusted friends use a room for one week, and the builder writes down what confused them (a decision file).
 
-**M3 — Push, strict phone mode, caught sequence, synced pomodoro**
-Push subscription flow (permission at first need; iOS install sheet), VAPID keys, `push` Edge Function, queue draining. Phase-end, honor check-in and "room is active" pushes. Strict mode for phone sessions: `device` detection, 10s pings, hidden pings, away/broken transitions, server `distracted` broadcast, the 4-push caught sequence (`core/caught.ts`), the "unverified · desktop" label, Wake Lock. The strict option in room settings. Room-synced pomodoro (§6.2.1, `core/sync.ts`).
-*Accept (builder on real devices):* on Android Chrome and an installed iOS PWA, leaving the app during a strict session shows you red to a second device within ~25s and delivers pushes at about 15/30/50s, then "broke" at 60s; returning at 40s keeps the session with 40s away; nothing arrives after "broke". A desktop session in a strict room shows as unverified. Two devices in a sync room show the same phase within 1s.
+**M3 — Push + synced pomodoro**
+Push subscription flow (permission at first need; iOS install sheet), VAPID keys, web push in the `push` Edge Function, queue draining. Phase-end, stopwatch check-in and "room is active" pushes. Room-synced pomodoro (§6.2.1, `core/sync.ts`).
+*Accept (builder on real devices):* on Android Chrome and an installed iOS PWA, a pomodoro started then backgrounded delivers "Break time" within ~15s of its end; "room is active" arrives on a second device and respects the 2h limit; two devices in a sync room show the same phase within 1s.
 *Pre-check:* before building M3, test on one classmate's actual phone (school-managed?) that PWA install and notifications work.
 
 **M4 — Isometric scene + bean avatars → LAUNCH**
-Asset spike (licenses → `docs/ASSETS.md`), `scene/` with camera, grid, items, seats, bean + state animations (incl. stand-up-red when distracted) + labels. The Room screen swaps the 2D view for the scene (the list stays in the Members tab). My Room read-only. Avatar editor (colors only). WebGL-unavailable fallback to the 2D view. The `/admin` metrics page (§12), so launch data is visible from day one. Run `ship-audit` and fix all blockers.
+Asset spike (licenses → `docs/ASSETS.md`), `scene/` with camera, grid, items, seats, bean + state animations + labels. The Room screen swaps the 2D view for the scene (the list stays in the Members tab). My Room read-only. Avatar editor (colors only). WebGL-unavailable fallback to the 2D view. The `/admin` metrics page (§12), so launch data is visible from day one. Run `ship-audit` and fix all blockers.
 *Accept:* 12 avatars render at ≥45 fps on a mid-range Android; the default room is under 2 MB of models; ship-audit verdict is SHIP.
 *Launch:* invite ~8 classmates.
 *Gate:* ≥5 of the 8 invitees each complete ≥3 sessions in their second week. **If the gate fails:** stop building. Interview 5 people, write the findings into a decision file, and fix the top reason before M5.
@@ -528,11 +521,11 @@ stations.json, licensed tracks uploaded, radio sync on `serverNow()`, now-playin
 Empty/error/offline states everywhere, performance pass, app icon + splash (`web-asset-generator`), accessibility pass (`web-design-guidelines`), a full `ship-audit`.
 *Accept:* Lighthouse PWA installable; ship-audit has no blockers or highs.
 
-**v1.5 — Extension + AI pass** (gets its own spec when unlocked): MV3 Chrome extension using `declarativeNetRequest` that pairs to the account (one-time code). It blocks short-form URL patterns during any active session. Other entertainment sites show an interstitial where you explain yourself; an Edge Function calls `claude-haiku-5-5` and returns allow (10-min pass) or deny with a one-line reason. Decisions are logged to the room as "used a pass" (no content shared). With the extension installed, desktop sessions in strict rooms can count as verified.
+**v1.5 — Extension + AI pass** (gets its own spec when unlocked): MV3 Chrome extension using `declarativeNetRequest` that pairs to the account (one-time code). It blocks short-form URL patterns during any active session. Other entertainment sites show an interstitial where you explain yourself; an Edge Function calls `claude-haiku-5-5` and returns allow (10-min pass) or deny with a one-line reason. Decisions are logged to the room as "used a pass" (no content shared). The extension is also the first way to verify focus; whether verified sessions get their own leaderboard is decided in the v1.5 spec.
 
 **v2 — Native** (gets its own spec when unlocked): Capacitor Android + iOS builds, native push, an Android UsageStats plugin for short-form detection.
 
-Rough timeline (DP1, part-time; expect slips, especially iOS push in M3): M0–M2 by late November 2026 · M3 by mid-December · M4 + launch by late January 2027 · M5–M6 February–March · M7 April · v1.5 after that · metrics accumulate through the fall 2027 applications.
+Rough timeline (DP1, part-time; expect slips, especially iOS push in M3 and the Resend domain setup in M2): M0–M2 by late November 2026 · M3 by mid-December · M4 + launch by late January 2027 · M5–M6 February–March · M7 April · v1.5 after that · metrics accumulate through the fall 2027 applications.
 
 ## 16. Definition of done (every task)
 
@@ -546,7 +539,7 @@ Rough timeline (DP1, part-time; expect slips, especially iOS push in M3): M0–M
 ## 17. Open questions (decide later; defaults apply until then)
 
 1. App name (default "Studyroom").
-2. Caught-sequence timings (15/30/50/60s). Tune after M3 dogfooding.
+2. Verify the consent-age table (§13.1) before M2, with sources.
 3. Coin prices, the 720/day cap and the bank auto-fill rate (½ coin per focus minute). Tune after M5 with real earn rates.
 4. Whether "Former member" history should be purgeable by the room owner.
 5. Free vs. paid Supabase at launch (§18).
