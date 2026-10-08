@@ -121,3 +121,49 @@ body::before {
     animation-duration: 0ms !important;
   }
 }
+
+@layer components {
+  .field {
+    width: 100%;
+    min-height: 44px;
+    padding: 0.5rem 0.75rem;
+    border: 2px solid var(--color-ink);
+    border-radius: 10px;
+    background: #fff;
+    color: var(--color-ink);
+  }
+  .chip {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    border: 2px solid var(--color-ink);
+    border-radius: 10px;
+    background: var(--color-paper-2);
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .chip:has(:focus-visible) {
+    outline: 3px solid var(--color-lamp);
+    outline-offset: 2px;
+  }
+  .chip-on {
+    background: var(--color-lamp);
+    box-shadow: var(--shadow-paper-sm);
+  }
+  .swatch {
+    width: 36px;
+    height: 36px;
+    border: 2px solid var(--color-ink);
+    border-radius: 999px;
+    cursor: pointer;
+  }
+  .swatch:has(:checked) {
+    outline: 3px solid var(--color-ink);
+    outline-offset: 2px;
+  }
+  .swatch:has(:focus-visible) {
+    outline: 3px solid var(--color-lamp);
+    outline-offset: 2px;
+  }
+}

@@ -1,36 +1,43 @@
 import { expect, test } from '@playwright/test'
+import { mockSupabase, readyProfile, signIn, SUPABASE_URL } from './mock-supabase'
 
-test('home renders the shell with three tabs', async ({ page }) => {
+test('signed-out visitors land on sign-in', async ({ page }) => {
+  await mockSupabase(page)
   await page.goto('/')
-  await expect(page.getByRole('heading', { name: 'Your rooms' })).toBeVisible()
-  const nav = page.getByRole('navigation', { name: 'Main' })
-  for (const tab of ['Home', 'My Room', 'Profile']) {
-    await expect(nav.getByRole('link', { name: tab })).toBeVisible()
-  }
+  await expect(page).toHaveURL(/\/signin$/)
+  await expect(page.getByRole('button', { name: 'Continue with Google' })).toBeVisible()
+  await page.getByLabel('Email').fill('ana@example.com')
+  await page.getByRole('button', { name: 'Email me a sign-in link' }).click()
+  await expect(page.getByRole('status')).toContainText('Check ana@example.com')
 })
 
-test('tabs navigate between pages', async ({ page }) => {
+test('signed-in users see the three tabs and can navigate', async ({ page }) => {
+  await mockSupabase(page, { profile: readyProfile })
+  await signIn(page)
   await page.goto('/')
-  await page.getByRole('link', { name: 'Profile' }).click()
-  await expect(page).toHaveURL(/\/profile$/)
-  await expect(page.getByRole('heading', { name: 'Profile' })).toBeVisible()
-  await page.getByRole('link', { name: 'My Room' }).click()
-  await expect(page.getByRole('heading', { name: 'My Room' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Hi, Ana.' })).toBeVisible()
+  const nav = page.getByRole('navigation', { name: 'Main' })
+  for (const tab of ['Home', 'My Room', 'Profile'])
+    await expect(nav.getByRole('link', { name: tab })).toBeVisible()
+  await nav.getByRole('link', { name: 'Profile' }).click()
+  await expect(page.getByRole('heading', { name: 'Ana', exact: true })).toBeVisible()
 })
 
 test('unknown paths show the not-found card', async ({ page }) => {
+  await mockSupabase(page, { profile: readyProfile })
+  await signIn(page)
   await page.goto('/nope')
   await expect(page.getByRole('heading', { name: 'This room does not exist' })).toBeVisible()
 })
 
 test('is installable: manifest is linked and the service worker activates', async ({ page }) => {
-  await page.goto('/')
+  await mockSupabase(page)
+  await page.goto('/signin')
   const manifestHref = await page.locator('link[rel="manifest"]').getAttribute('href')
   expect(manifestHref).toBe('/manifest.webmanifest')
   const manifest = await (await page.request.get('/manifest.webmanifest')).json()
   expect(manifest.display).toBe('standalone')
   expect(manifest.icons.some((i: { sizes: string }) => i.sizes === '512x512')).toBe(true)
-
   await page.evaluate(() => navigator.serviceWorker.ready)
   await expect
     .poll(() => page.evaluate(async () => (await navigator.serviceWorker.getRegistration())?.active?.state))
@@ -38,11 +45,13 @@ test('is installable: manifest is linked and the service worker activates', asyn
 })
 
 test('makes no requests to third-party hosts', async ({ page, baseURL }) => {
-  const origin = new URL(baseURL ?? 'http://localhost').origin
+  await mockSupabase(page, { profile: readyProfile })
+  await signIn(page)
+  const allowed = new Set([new URL(baseURL ?? 'http://localhost').origin, new URL(SUPABASE_URL).origin])
   const foreign: string[] = []
   page.on('request', (req) => {
     const url = req.url()
-    if (!url.startsWith('data:') && new URL(url).origin !== origin) foreign.push(url)
+    if (!url.startsWith('data:') && !allowed.has(new URL(url).origin)) foreign.push(url)
   })
   await page.goto('/')
   await page.waitForLoadState('networkidle')

@@ -439,10 +439,10 @@ Admin page `/admin` (`is_admin` only): WAU/DAU (users with ≥1 completed sessio
   - Grant → `consent_status = granted`. The parent email is cleared, and its hash is kept as the record. The same email carries a permanent **withdraw consent** link.
   - Decline, withdrawal, or no answer within 7 days → the child's account and all their data are deleted.
 - **At or above the consent age:** `not_required`.
-- `src/content/consent-ages.json` (mirrored into `consent_ages`) starts with these values. **Verify every entry against a current primary source before M2, and record the sources in the file:**
-  - **13:** BE, DK, EE, FI, LV, MT, PT, SE, NO, IS, GB, US, CA, AU, NZ
-  - **14:** AT, BG, CY, ES, IT, LT, CN, KR
-  - **15:** CZ, FR, GR, SI
+- `src/content/consent-ages.json` (mirrored into `consent_ages`, with a source per entry; see decision 0004) holds these values:
+  - **13:** BE, DK, EE, FI, LV, MT, PT, SE, NO, IS, GB, US
+  - **14:** AT, BG, CY, ES, IT, LT, CN, KR, CA
+  - **15:** CZ, FR, GR, SI, AU
   - **16:** DE, HR, HU, IE, LU, NL, PL, RO, SK, LI (and the default)
   - **18:** IN
 - Age is self-declared (no ID checks). That is the accepted standard for this kind of app; recorded in decision 0003.
@@ -539,10 +539,11 @@ Rough timeline (DP1, part-time; expect slips, especially iOS push in M3 and the 
 ## 17. Open questions (decide later; defaults apply until then)
 
 1. App name (default "Studyroom").
-2. Verify the consent-age table (§13.1) before M2, with sources.
+2. **Sender domain for email (open).** Buy a domain and verify it in Resend; also set it as Supabase Auth's custom SMTP. Required before anyone but the builder can sign in by email, and before parental-consent emails (M2).
 3. Coin prices, the 720/day cap and the bank auto-fill rate (½ coin per focus minute). Tune after M5 with real earn rates.
 4. Whether "Former member" history should be purgeable by the room owner.
 5. Free vs. paid Supabase at launch (§18).
+6. Consent-age table: accepted for now (decision 0004). Re-verify before any rollout beyond the builder's school.
 
 ## 18. Operations
 

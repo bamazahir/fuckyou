@@ -44,7 +44,7 @@ For every item: **evidence** (file:line, SQL output or command output) or it isn
 - Cron/Edge transitions are idempotent (`UPDATE ... WHERE status='active' RETURNING`).
 
 ### B. Secrets & config
-- `grep -r "service_role\|SUPABASE_SERVICE\|VAPID_PRIVATE\|sk-ant" dist/ src/` → no hits in the client bundle.
+- `grep -rlE "sb_secret_[A-Za-z0-9]{8,}|eyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]*c2VydmljZV9yb2xl|sk-ant-|VAPID_PRIVATE" dist/ src/` → no hits (actual key shapes; the bare strings `service_role`/`sb_secret_` appear inside supabase-js itself and are not leaks).
 - Only `VITE_`-prefixed public values reach the client. `.env*` is gitignored. Search git history for committed secrets.
 - Edge Functions verify the caller: a user JWT, or the cron shared secret for `tick`.
 - GitHub Actions use minimal `permissions:`, and no secrets are echoed to logs.
