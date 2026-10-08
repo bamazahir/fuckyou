@@ -63,7 +63,7 @@
 
 | Layer | Choice | Why |
 |---|---|---|
-| App | **Vite + React 18 + TypeScript (strict)** | Fast iteration; web-first |
+| App | **Vite 8 + React 19 + TypeScript 5.9 (strict)** | Fast iteration; web-first. React 19 because @react-three/fiber 9 requires it; TS 5.9 because typescript-eslint doesn't support TS 7 yet |
 | PWA | **vite-plugin-pwa** (`injectManifest` strategy, custom `src/sw.ts`) | Installable, offline shell, push handler |
 | Native later | **Capacitor** (wraps the same build) | The 3D scene runs unchanged in a WebView; native plugins (UsageStats) can be added |
 | 3D / isometric | **three.js via @react-three/fiber + @react-three/drei** | Orthographic camera gives a true isometric look; free rotation and recoloring |

@@ -16,14 +16,14 @@ Mood: a small warm room at night. Desk lamps glowing, dusk-blue windows, paper a
 --ink:        #2B2622   text, 2px outlines
 --paper:      #F6EFE4   cards / sheets
 --paper-2:    #EDE3D3   pressed / secondary surface
---wood:       #B07A4F   accents, tab bar
+--wood:       #BA8456   accents, tab bar (ink text on it: 4.65:1)
 --lamp:       #FFC86B   primary action, focus, "studying" glow
 --dusk:       #2F3A5C   app background at night, windows
 --dusk-2:     #44527D
 --leaf:       #6FA06B   focusing state
 --sky:        #7FB2D9   break state
 --ember:      #E0654A   destructive / errors
---muted:      #8A7F73   secondary text
+--muted:      #675D53   secondary text (5.6:1 on paper)
 ```
 Day theme (06:00–18:00 local) swaps the background to `#E9DFCF` and windows to `#A9D3EE`. The room follows the **user's local time**: at night, lamps on, windows dark, a soft glow. That makes the 2am moment feel special.
 

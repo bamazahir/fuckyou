@@ -1,0 +1,123 @@
+@import 'tailwindcss';
+
+/* Design tokens: the only source of colors (studyroom-look §1). */
+@theme {
+  --color-ink: #2b2622;
+  --color-paper: #f6efe4;
+  --color-paper-2: #ede3d3;
+  --color-wood: #ba8456;
+  --color-lamp: #ffc86b;
+  --color-dusk: #2f3a5c;
+  --color-dusk-2: #44527d;
+  --color-leaf: #6fa06b;
+  --color-sky: #7fb2d9;
+  --color-ember: #e0654a;
+  --color-muted: #675d53;
+  --color-day: #e9dfcf;
+  --color-window-day: #a9d3ee;
+
+  --font-display: 'Bricolage Grotesque Variable', ui-sans-serif, sans-serif;
+  --font-body: 'Atkinson Hyperlegible', ui-sans-serif, sans-serif;
+
+  --radius-card: 14px;
+  --shadow-paper: 4px 4px 0 var(--color-ink);
+  --shadow-paper-sm: 2px 2px 0 var(--color-ink);
+}
+
+:root {
+  --bg: var(--color-dusk);
+  --bg-2: var(--color-dusk-2);
+  --on-bg: var(--color-paper);
+  --on-bg-muted: color-mix(in oklab, var(--color-paper) 70%, var(--color-dusk));
+  color-scheme: dark;
+}
+
+:root[data-daypart='day'] {
+  --bg: var(--color-day);
+  --bg-2: var(--color-paper-2);
+  --on-bg: var(--color-ink);
+  --on-bg-muted: var(--color-muted);
+  color-scheme: light;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background-color: var(--bg);
+  color: var(--on-bg);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 600ms ease;
+}
+
+/* Subtle paper grain over the whole app (4% opacity, inline SVG noise: no extra request). */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 50;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+
+@layer components {
+  .card {
+    background: var(--color-paper);
+    color: var(--color-ink);
+    border: 2px solid var(--color-ink);
+    border-radius: var(--radius-card);
+  }
+  .card-raised {
+    box-shadow: var(--shadow-paper);
+  }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 44px;
+    padding: 0 1.1rem;
+    border: 2px solid var(--color-ink);
+    border-radius: 12px;
+    font-family: var(--font-display);
+    font-weight: 700;
+    color: var(--color-ink);
+    box-shadow: var(--shadow-paper-sm);
+    transition:
+      transform 120ms ease,
+      box-shadow 120ms ease;
+  }
+  .btn:active:not(:disabled) {
+    transform: translate(2px, 2px);
+    box-shadow: 0 0 0 var(--color-ink);
+  }
+  .btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+  .btn-primary {
+    background: var(--color-lamp);
+  }
+  .btn-secondary {
+    background: var(--color-paper-2);
+  }
+  :focus-visible {
+    outline: 3px solid var(--color-lamp);
+    outline-offset: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0ms !important;
+    animation-duration: 0ms !important;
+  }
+}
