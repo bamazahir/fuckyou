@@ -29,6 +29,8 @@ jobs:
       - run: pnpm format:check
       - run: pnpm test
       - run: pnpm build
+      - name: Type-check Edge Functions
+        run: npx -y deno@2 check supabase/functions/push/index.ts
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:e2e
       - if: failure()

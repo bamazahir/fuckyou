@@ -7,6 +7,8 @@ import { formatClock } from '../../core/time'
 import type { SessionRow } from '../../lib/db'
 import { useAuth } from '../../stores/auth'
 import { useTimer } from '../../stores/timer'
+import { shortDuration } from '../../core/room'
+import { useMyHistory } from '../stats/useMyHistory'
 
 const t = copy.room
 const FOCUS_CHOICES = [15, 25, 50] as const
@@ -25,13 +27,13 @@ function ProgressRing({ progress }: { progress: number }) {
   const c = 2 * Math.PI * r
   return (
     <svg viewBox="0 0 240 240" className="absolute inset-0 h-full w-full -rotate-90" aria-hidden="true">
-      <circle cx="120" cy="120" r={r} fill="none" stroke="var(--color-paper-2)" strokeWidth="12" />
+      <circle cx="120" cy="120" r={r} fill="none" stroke="var(--surface-2)" strokeWidth="12" />
       <circle
         cx="120"
         cy="120"
         r={r}
         fill="none"
-        stroke="var(--color-lamp)"
+        stroke="var(--accent)"
         strokeWidth="12"
         strokeLinecap="round"
         strokeDasharray={c}
@@ -66,7 +68,7 @@ function Running({ session }: { session: SessionRow }) {
         </div>
       </div>
       {view.checkinDue && view.checkinSecondsLeft !== null && (
-        <div className="card mt-4 w-full bg-lamp p-4" role="alert">
+        <div className="card mt-4 w-full bg-accent p-4 text-on-accent" role="alert">
           <p className="font-display text-lg font-bold">{t.checkinTitle}</p>
           <p className="text-sm">{t.checkinBody(formatClock(view.checkinSecondsLeft))}</p>
           <button type="button" className="btn btn-secondary mt-3" onClick={() => void checkin()}>
@@ -96,7 +98,7 @@ function Break({
   return (
     <div className="text-center">
       <p className="font-display text-xl font-bold">{t.breakTitle(minutes)}</p>
-      <p className="font-display mt-2 text-6xl font-bold tabular-nums text-sky">{formatClock(left)}</p>
+      <p className="font-display mt-2 text-6xl font-bold tabular-nums text-rest">{formatClock(left)}</p>
       <p className="mt-2 text-sm text-muted">{t.breakBody}</p>
       <div className="mt-5 flex justify-center gap-3">
         <button type="button" className="btn btn-primary" onClick={onStartNext}>
@@ -121,6 +123,7 @@ export function TimerDock({ roomId }: { roomId: string }) {
   )
   const [statusLine, setStatusLine] = useState('')
 
+  const { stats } = useMyHistory()
   const begin = () => void start(roomId, kind, kind === 'pomodoro' ? focusMinutes * 60 : null, statusLine)
 
   return (
@@ -184,6 +187,11 @@ export function TimerDock({ roomId }: { roomId: string }) {
           >
             {t.start}
           </button>
+          {stats && stats.todaySeconds > 0 && (
+            <p className="mt-3 text-center text-sm text-muted">
+              {t.todayTotal(shortDuration(stats.todaySeconds))}
+            </p>
+          )}
         </div>
       )}
     </section>

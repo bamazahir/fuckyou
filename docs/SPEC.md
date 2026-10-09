@@ -47,6 +47,7 @@
 | F11 | Coins & shop | Earn from completed focus. Spend on personal items, or donate to the room bank. The room bank also fills automatically from the room's study time. |
 | F12 | Ambient radio | Built-in stations (lofi, rain, café, brown noise). Room-synced. Now-playing panel + Media Session. |
 | F13 | Notifications | Phase-end, stopwatch check-in, optional "room is active". Web push. |
+| F15 | Themes | Four themes (Lamplight, Library, Blossom, Observatory), each light + dark, plus Auto (follows local time). Stored in `profiles.settings` and locally. |
 | F14 | Privacy, safety & admin | Delete account, export data, privacy page, profanity filter, block + report, builder moderation queue, first-party metrics dashboard. |
 
 ### Deferred, and what unlocks each
@@ -115,7 +116,7 @@ Empty and alone states:
 Your personal isometric room. Visitors (roommates) see it read-only. Buttons: **Edit** (place, rotate, remove items from inventory), **Shop**, **Avatar**. Coin balance top-right.
 
 ### 5.5 Profile / Settings
-Stats (lifetime hours, this week, current streak of days studied ≥25 min). Settings: timer defaults, sounds, notification toggles (per type; per room for "room is active"), export data, delete account, privacy policy, sign out.
+Stats (lifetime hours, this week, current streak of days studied ≥25 min). Settings: theme + light/dark/auto, timer defaults, sounds, notification toggles (per type; per room for "room is active"), export data, delete account, privacy policy, sign out.
 
 ### 5.6 End-of-session sheet
 Appears when a focus block ends (or on return after it ended in the background):

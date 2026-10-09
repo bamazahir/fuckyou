@@ -12,7 +12,38 @@ type Row = Record<string, unknown>
 export interface MockState {
   profile: Row | null
   sessions: Row[]
+  rooms: Row[]
+  live: Row[]
   calls: { name: string; body: Row }[]
+}
+
+export const otherAvatar = { colors: { body: '#E0654A', skin: '#C98B5E', hair: '#4A3426', top: '#FFC86B' } }
+
+export function sharedRoom(over: Row = {}): Row {
+  return {
+    id: 'room-chem',
+    name: 'IB Chem',
+    role: 'owner',
+    invite_code: 'AB3DK7M9',
+    member_count: 2,
+    studying_count: 1,
+    sync_pomodoro: false,
+    studying: [{ display_name: 'Mia', avatar: otherAvatar }],
+    ...over,
+  }
+}
+
+export const miaLive: Row = {
+  user_id: '00000000-0000-4000-8000-0000000000b2',
+  display_name: 'Mia',
+  avatar: otherAvatar,
+  state: 'focus',
+  kind: 'pomodoro',
+  started_at: new Date(Date.now() - 10 * 60_000).toISOString(),
+  planned_seconds: 1500,
+  status_line: 'Kinetics',
+  sitting_seconds: 600,
+  break_until: null,
 }
 
 function fakeJwt(): string {
@@ -53,7 +84,7 @@ export const readyProfile: Row = {
 }
 
 export async function mockSupabase(page: Page, initial: Partial<MockState> = {}): Promise<MockState> {
-  const state: MockState = { profile: null, sessions: [], calls: [], ...initial }
+  const state: MockState = { profile: null, sessions: [], rooms: [], live: [], calls: [], ...initial }
   const json = (route: Route, body: unknown, status = 200) =>
     route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) })
 
@@ -133,12 +164,101 @@ export async function mockSupabase(page: Page, initial: Partial<MockState> = {})
           if (s) s.note = String(body.p_note).trim()
           return json(route, 0)
         }
+        case 'my_rooms':
+          return json(route, state.rooms)
+        case 'create_room': {
+          const r = sharedRoom({
+            id: `room-${state.rooms.length + 1}`,
+            name: body.p_name,
+            member_count: 1,
+            studying_count: 0,
+            studying: [],
+          })
+          state.rooms.push(r)
+          return json(route, { id: r.id, name: r.name })
+        }
+        case 'preview_room':
+          if (body.p_code !== 'AB3DK7M9') return json(route, { message: 'room_not_found' }, 400)
+          return json(route, {
+            id: 'room-chem',
+            name: 'IB Chem',
+            member_count: 2,
+            studying: [{ display_name: 'Mia', avatar: otherAvatar }],
+          })
+        case 'join_room': {
+          if (body.p_code !== 'AB3DK7M9') return json(route, { message: 'room_not_found' }, 400)
+          if (!state.rooms.some((r) => r.id === 'room-chem')) state.rooms.push(sharedRoom({ role: 'member' }))
+          return json(route, { id: 'room-chem', name: 'IB Chem' })
+        }
+        case 'room_live':
+          return json(route, state.live)
+        case 'room_members_list':
+          return json(route, [
+            {
+              user_id: USER_ID,
+              handle: 'ana',
+              display_name: 'Ana',
+              avatar: readyProfile.avatar,
+              role: 'owner',
+              joined_at: '2026-10-01T00:00:00Z',
+            },
+            {
+              user_id: miaLive.user_id,
+              handle: 'mia',
+              display_name: 'Mia',
+              avatar: otherAvatar,
+              role: 'member',
+              joined_at: '2026-10-02T00:00:00Z',
+            },
+          ])
+        case 'leaderboard':
+          return json(route, [
+            {
+              user_id: miaLive.user_id,
+              display_name: 'Mia',
+              avatar: otherAvatar,
+              seconds: 5400,
+              rank: 1,
+              is_present: true,
+            },
+            {
+              user_id: USER_ID,
+              display_name: 'Ana',
+              avatar: readyProfile.avatar,
+              seconds: 3000,
+              rank: 2,
+              is_present: false,
+            },
+          ])
+        case 'request_parental_consent':
+          return route.fulfill({ status: 204 })
+        case 'consent_view':
+          return json(route, {
+            child_display_name: 'Kid',
+            state: 'pending',
+            expires_at: new Date(Date.now() + 86_400_000).toISOString(),
+          })
+        case 'consent_decide':
+          return json(route, body.p_decision === 'grant' ? 'granted' : 'deleted')
+        case 'export_my_data':
+          return json(route, { profile: state.profile, sessions: state.sessions })
+        case 'delete_my_account':
+          state.profile = null
+          return route.fulfill({ status: 204 })
+        case 'block_user':
+        case 'unblock_user':
+        case 'report':
+          return route.fulfill({ status: 204 })
         default:
           return json(route, { message: 'unknown' }, 400)
       }
     }
 
-    if (path === '/rest/v1/profiles') return one(state.profile ? [state.profile] : [])
+    if (path === '/rest/v1/profiles') {
+      if (req.method() === 'PATCH') return route.fulfill({ status: 204 })
+      return one(state.profile ? [state.profile] : [])
+    }
+    if (path === '/rest/v1/blocks') return json(route, [])
     if (path === '/rest/v1/rooms') return one(state.profile ? [{ id: 'room-personal' }] : [])
     if (path === '/rest/v1/sessions') {
       const status = url.searchParams.get('status')

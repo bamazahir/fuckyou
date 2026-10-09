@@ -1,27 +1,38 @@
+import { useEffect } from 'react'
 import { Navigate, useParams } from 'react-router-dom'
+import { RoomScene } from '../../components/RoomScene'
+import { useDaypart } from '../../components/useDaypart'
 import { copy } from '../../content/copy'
 import { useAuth } from '../../stores/auth'
+import { useRooms } from '../../stores/rooms'
 import { useTimer } from '../../stores/timer'
+import { NotFoundPage } from '../NotFoundPage'
 import { NoteDialog } from './NoteDialog'
+import { SharedRoom } from './SharedRoom'
 import { TimerDock } from './TimerDock'
 
-export function RoomPage() {
-  const { roomId } = useParams()
-  const personalRoomId = useAuth((s) => s.personalRoomId)
+function SoloRoom({ roomId }: { roomId: string }) {
+  const profile = useAuth((s) => s.profile)
+  const daypart = useDaypart()
   const { phase, afterEnded } = useTimer()
-
-  // M1: only your personal room exists. Shared rooms arrive in M2.
-  if (!roomId || roomId !== personalRoomId) return <Navigate to="/" replace />
-
+  if (!profile) return null
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <header className="flex items-center justify-between gap-3">
         <h1 className="font-display text-3xl font-bold">{copy.myRoom.title}</h1>
-        <span className="rounded-full border-2 border-ink bg-paper px-3 py-1 text-sm font-bold text-ink">
-          {copy.room.soloBadge}
-        </span>
+        <span className="pill">{copy.room.soloBadge}</span>
       </header>
-      <TimerDock roomId={roomId} />
+      <div className="grid gap-5 lg:grid-cols-[1fr_22rem]">
+        <div className="card card-raised self-start overflow-hidden">
+          <RoomScene
+            beans={[profile.avatar.colors]}
+            night={daypart === 'night'}
+            lampOn={phase.name === 'running' || daypart === 'night'}
+            label={copy.myRoom.title}
+          />
+        </div>
+        <TimerDock roomId={roomId} />
+      </div>
       {phase.name === 'ended' && (
         <NoteDialog
           key={phase.session.id}
@@ -32,4 +43,20 @@ export function RoomPage() {
       )}
     </div>
   )
+}
+
+export function RoomPage() {
+  const { roomId } = useParams()
+  const personalRoomId = useAuth((s) => s.personalRoomId)
+  const { rooms, load } = useRooms()
+
+  useEffect(() => {
+    if (rooms === null) void load()
+  }, [rooms, load])
+
+  if (!roomId) return <Navigate to="/" replace />
+  if (roomId === personalRoomId) return <SoloRoom roomId={roomId} />
+  if (rooms === null) return null
+  const room = rooms.find((r) => r.id === roomId)
+  return room ? <SharedRoom key={room.id} room={room} /> : <NotFoundPage />
 }

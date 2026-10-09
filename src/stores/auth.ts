@@ -2,6 +2,7 @@ import type { Session } from '@supabase/supabase-js'
 import { create } from 'zustand'
 import type { Profile } from '../lib/db'
 import { isConfigured, supabase } from '../lib/supabase'
+import { useTheme } from './theme'
 
 export type AuthStatus =
   'loading' | 'unconfigured' | 'signed_out' | 'needs_profile' | 'pending' | 'ready' | 'error'
@@ -49,6 +50,7 @@ export const useAuth = create<AuthState>((set, get) => ({
       return
     }
     const profile = (profileRes.data as Profile | null) ?? null
+    useTheme.getState().adoptFromProfile(profile?.settings as Record<string, unknown> | undefined)
     set({
       profile,
       personalRoomId: (roomRes.data as { id: string } | null)?.id ?? null,

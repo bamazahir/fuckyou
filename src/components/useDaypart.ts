@@ -1,18 +1,14 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { daypartAt, msUntilNextDaypart, type Daypart } from '../core/daypart'
+import { useTheme } from '../stores/theme'
 
-/** Keeps <html data-daypart> in sync with the viewer's local time. */
+/** Current daypart; also re-applies the theme when day turns to night (auto mode). */
 export function useDaypart(): Daypart {
-  const [daypart, setDaypart] = useState<Daypart>(() => daypartAt(new Date().getHours()))
-
+  const resolved = useTheme((s) => s.resolved)
+  const tick = useTheme((s) => s.tick)
   useEffect(() => {
-    document.documentElement.dataset.daypart = daypart
-    const timer = window.setTimeout(
-      () => setDaypart(daypartAt(new Date().getHours())),
-      msUntilNextDaypart(new Date()) + 1000,
-    )
+    const timer = window.setTimeout(tick, msUntilNextDaypart(new Date()) + 1000)
     return () => window.clearTimeout(timer)
-  }, [daypart])
-
-  return daypart
+  }, [resolved, tick])
+  return daypartAt(new Date().getHours())
 }

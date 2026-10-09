@@ -40,7 +40,7 @@ export function NoteDialog({
       ref={ref}
       aria-labelledby="note-title"
       onCancel={() => onClose(false)}
-      className="card card-raised m-auto w-[min(28rem,calc(100%-2rem))] p-6 backdrop:bg-ink/60"
+      className="card card-raised m-auto w-[min(28rem,calc(100%-2rem))] p-6 backdrop:bg-black/60"
     >
       <form onSubmit={save}>
         <h2 id="note-title" className="font-display text-2xl font-bold">

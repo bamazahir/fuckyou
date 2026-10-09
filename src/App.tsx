@@ -2,13 +2,14 @@ import { useEffect, type ReactNode } from 'react'
 import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom'
 import { Shell } from './components/Shell'
 import { SignInPage } from './features/auth/SignInPage'
-import {
-  BlockedPage,
-  LoadErrorPage,
-  LoadingPage,
-  UnconfiguredPage,
-  WaitingPage,
-} from './features/auth/StatusPages'
+import { BlockedPage, LoadErrorPage, LoadingPage, UnconfiguredPage } from './features/auth/StatusPages'
+import { WaitingPage } from './features/auth/WaitingPage'
+import { AdminPage } from './features/admin/AdminPage'
+import { ConsentPage } from './features/consent/ConsentPage'
+import { InvitePage } from './features/invite/InvitePage'
+import { PrivacyPage } from './features/privacy/PrivacyPage'
+import { Toasts } from './components/Toasts'
+import { pendingInvite, useRooms } from './stores/rooms'
 import { HomePage } from './features/home/HomePage'
 import { MyRoomPage } from './features/myroom/MyRoomPage'
 import { NotFoundPage } from './features/NotFoundPage'
@@ -65,6 +66,10 @@ const router = createBrowserRouter([
     ),
   },
   { path: '/blocked', element: <BlockedPage /> },
+  // Public pages: no sign-in needed (invite preview, parent consent, privacy).
+  { path: '/j/:code', element: <InvitePage /> },
+  { path: '/consent/:token', element: <ConsentPage /> },
+  { path: '/privacy', element: <PrivacyPage /> },
   {
     element: (
       <Gate allow="ready">
@@ -76,6 +81,7 @@ const router = createBrowserRouter([
       { path: '/me', element: <MyRoomPage /> },
       { path: '/profile', element: <ProfilePage /> },
       { path: '/room/:roomId', element: <RoomPage /> },
+      { path: '/admin', element: <AdminPage /> },
       { path: '*', element: <NotFoundPage /> },
     ],
   },
@@ -92,8 +98,25 @@ export function App() {
     if (status !== 'ready') return
     startClockSync()
     void useTimer.getState().loadActive()
+    void useRooms.getState().loadBlocks()
     void supabase.rpc('log_event', { p_name: 'app_open', p_props: {} })
+    // Finish an invite that was opened before signing in.
+    const code = pendingInvite.get()
+    if (code) {
+      pendingInvite.clear()
+      void useRooms
+        .getState()
+        .join(code)
+        .then((res) => {
+          if (res.id) void router.navigate(`/room/${res.id}`)
+        })
+    }
   }, [status])
 
-  return <RouterProvider router={router} />
+  return (
+    <>
+      <RouterProvider router={router} />
+      <Toasts />
+    </>
+  )
 }

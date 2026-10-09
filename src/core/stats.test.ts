@@ -45,7 +45,29 @@ describe('profileStats', () => {
     expect(profileStats([s('2026-10-07T09:00:00Z', 30)], now, tz).streakDays).toBe(1)
   })
 
+  it('counts today and the last seven days, oldest first', () => {
+    const st = profileStats(
+      [s('2026-10-08T09:00:00Z', 30), s('2026-10-08T12:00:00Z', 10), s('2026-10-02T09:00:00Z', 50)],
+      now,
+      tz,
+    )
+    expect(st.todaySeconds).toBe(40 * 60)
+    expect(st.lastSevenDays.map((d) => d.date)).toEqual([
+      '2026-10-02',
+      '2026-10-03',
+      '2026-10-04',
+      '2026-10-05',
+      '2026-10-06',
+      '2026-10-07',
+      '2026-10-08',
+    ])
+    expect(st.lastSevenDays[0]?.seconds).toBe(50 * 60)
+    expect(st.lastSevenDays[6]?.seconds).toBe(40 * 60)
+  })
+
   it('is empty for no sessions', () => {
-    expect(profileStats([], now, tz)).toEqual({ lifetimeSeconds: 0, thisWeekSeconds: 0, streakDays: 0 })
+    const st = profileStats([], now, tz)
+    expect([st.lifetimeSeconds, st.thisWeekSeconds, st.todaySeconds, st.streakDays]).toEqual([0, 0, 0, 0])
+    expect(st.lastSevenDays.every((d) => d.seconds === 0)).toBe(true)
   })
 })

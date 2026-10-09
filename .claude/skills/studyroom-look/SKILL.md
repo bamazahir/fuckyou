@@ -11,21 +11,28 @@ Studyroom has to feel like a **place**, not a dashboard. The test for every scre
 
 Mood: a small warm room at night. Desk lamps glowing, dusk-blue windows, paper and wood. Calm, cozy, a bit proud. References to study (for feel, never to copy): *Unpacking* (tidy isometric rooms), *A Short Hike* (soft low-poly), Monument Valley (clean lighting), Habbo (social rooms).
 
-### Design tokens (`src/styles/tokens.css`; the only source of colors)
-```
---ink:        #2B2622   text, 2px outlines
---paper:      #F6EFE4   cards / sheets
---paper-2:    #EDE3D3   pressed / secondary surface
---wood:       #BA8456   accents, tab bar (ink text on it: 4.65:1)
---lamp:       #FFC86B   primary action, focus, "studying" glow
---dusk:       #2F3A5C   app background at night, windows
---dusk-2:     #44527D
---leaf:       #6FA06B   focusing state
---sky:        #7FB2D9   break state
---ember:      #E0654A   destructive / errors
---muted:      #675D53   secondary text (5.6:1 on paper)
-```
-Day theme (06:00–18:00 local) swaps the background to `#E9DFCF` and windows to `#A9D3EE`. The room follows the **user's local time**: at night, lamps on, windows dark, a soft glow. That makes the 2am moment feel special.
+### Color: semantic roles × themes (the only source of colors)
+Components use **roles**, never raw palette values. Roles are CSS variables set per theme and mode in `src/styles/themes.css`, which is **generated** by `node scripts/design/themes.mjs --write`. That script also checks every text/background pair for contrast and fails on any miss.
+
+| Role | Used for |
+|---|---|
+| `bg`, `on-bg`, `on-bg-muted`, `pattern` | the wall behind everything (+ its pattern), text on it |
+| `surface`, `surface-2`, `field` | cards / pressed or secondary surfaces / inputs |
+| `ink`, `muted`, `line` | text on cards, secondary text, 2px outlines and hard shadows |
+| `accent`, `on-accent` | primary buttons, active tabs/chips, today's bar; text on them |
+| `nav`, `on-nav` | the tab bar / side rail |
+| `good`, `rest`, `danger` | focusing, on a break, destructive/errors (always with a label, never color alone) |
+| `wall`, `window`, `wood`, `glow` | the 2D room scene (`RoomScene`) |
+
+Tailwind utilities map 1:1 (`bg-surface`, `text-on-bg-muted`, `border-line`, `bg-accent text-on-accent`…). Anything on `bg-accent` uses `text-on-accent`.
+
+**Themes** (each has light + dark; mode `auto` follows local time, light 06–18, dark otherwise):
+- **Lamplight** (default): dusk walls, paper, lamp yellow. Dotted wallpaper.
+- **Library**: bottle green, cream, brass. Wainscot stripes.
+- **Blossom**: plum/petal, rose. Polka dots.
+- **Observatory**: deep indigo with *dark* cards and lavender outlines, lilac accent. Sparse stars.
+
+To add or adjust a theme: edit `scripts/design/themes.mjs`, run it with `--write`, and keep it at zero failures. Never hand-edit `themes.css` or hard-code a hex in a component (bean eyes and avatar swatches are the only exceptions: character art).
 
 ### Type
 - Display/timer: **Bricolage Grotesque** (700). The timer uses `font-variant-numeric: tabular-nums`.
@@ -33,7 +40,8 @@ Day theme (06:00–18:00 local) swaps the background to `#E9DFCF` and windows to
 - Self-host both (woff2 in `public/fonts`); no Google Fonts requests (privacy, SPEC §13). Record them in `docs/ASSETS.md` (both are OFL).
 
 ### UI language
-- Cards look like **paper on a desk**: `--paper` fill, 2px `--ink` border, 14px radius, an offset hard shadow `4px 4px 0 var(--ink)` on primary cards only. Buttons press down 2px on active.
+- Cards look like **paper on a desk**: `surface` fill, 2px `line` border, 14px radius, an offset hard shadow `4px 4px 0 var(--line)` on primary cards only. Buttons press down 2px on active.
+- Screens are never bare: the illustrated `RoomScene` (window shows the real time of day, lamp glows when someone studies) heads Home, solo and shared rooms and invite previews; quiet rooms show free desks; numbers sit in strips rather than floating alone.
 - A subtle grain overlay (tiny noise PNG at 4% opacity) on the background.
 - Icons: one consistent set (Phosphor "bold" or Lucide at 2px stroke to match the borders). Never mix sets. Emoji only for reactions.
 - Motion: springy but short (150–250ms). Avatar join = walk in. Coin gain = coins arc into the counter. Respect `prefers-reduced-motion`.
@@ -72,7 +80,8 @@ Normalize every model (script `scripts/assets/normalize.mjs` using `@gltf-transf
 
 Use `webapp-testing` to capture Room, Home and My Room at **390×844** and **1440×900**, in **day and night**, with 1, 4 and 12 avatars present. Check against this list and fix before finishing:
 - [ ] Nothing from the Banned list.
-- [ ] Only token colors are used (`grep -rn "#[0-9a-fA-F]\{6\}" src --include=*.tsx` → no hits outside tokens/scene palette).
+- [ ] Only role colors are used (`grep -rn "#[0-9a-fA-F]\{6\}" src --include=*.tsx` → no hits outside `content/avatar.ts` and the bean's eye color).
+- [ ] Captured in all four themes, light and dark (`SCREENSHOTS=1 pnpm test:e2e screens`).
 - [ ] The timer is the most prominent UI element; the scene is the most prominent overall.
 - [ ] Labels are readable over the scene at all three crowd sizes.
 - [ ] Night mode feels warm, not just dark.

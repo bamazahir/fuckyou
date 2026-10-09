@@ -157,7 +157,7 @@ export function OnboardingPage() {
             <label htmlFor="handle" className="mt-5 block text-sm font-bold">
               {t.name.handleLabel}
             </label>
-            <div className="field mt-1 flex items-center gap-1 focus-within:outline-3 focus-within:outline-lamp">
+            <div className="field mt-1 flex items-center gap-1 focus-within:outline-3 focus-within:outline-accent">
               <span className="text-muted">@</span>
               <input
                 id="handle"

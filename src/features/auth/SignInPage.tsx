@@ -34,7 +34,7 @@ export function SignInPage() {
   return (
     <Screen>
       <h1 className="font-display text-4xl font-bold">{APP_NAME}</h1>
-      <p className="mt-2 text-lg text-[var(--on-bg-muted)]">{copy.signIn.lead}</p>
+      <p className="mt-2 text-lg text-on-bg-muted">{copy.signIn.lead}</p>
       <div className="card card-raised mt-8 p-6">
         <h2 className="font-display text-2xl font-bold">{copy.signIn.title}</h2>
         {sentTo ? (
@@ -69,7 +69,7 @@ export function SignInPage() {
           </>
         )}
         {failed && (
-          <p role="alert" className="mt-3 text-sm font-bold text-ember">
+          <p role="alert" className="mt-3 text-sm font-bold text-danger">
             {copy.errors.generic}
           </p>
         )}

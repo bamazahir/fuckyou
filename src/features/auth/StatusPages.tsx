@@ -23,7 +23,6 @@ export const UnconfiguredPage = () => (
   <StatusCard title={copy.unconfigured.title} body={copy.unconfigured.body} />
 )
 export const BlockedPage = () => <StatusCard title={copy.blocked.title} body={copy.blocked.body} />
-export const WaitingPage = () => <StatusCard title={copy.waiting.title} body={copy.waiting.body} signOut />
 export const LoadErrorPage = () => (
   <StatusCard title={copy.errors.load_failed} body={copy.errors.generic} signOut />
 )
@@ -31,7 +30,7 @@ export const LoadErrorPage = () => (
 export function LoadingPage() {
   return (
     <Screen>
-      <p className="text-center text-[var(--on-bg-muted)]" role="status">
+      <p className="text-center text-on-bg-muted" role="status">
         {copy.common.loading}
       </p>
     </Screen>

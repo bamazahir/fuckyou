@@ -35,7 +35,10 @@ export function weekStart(date: string): string {
 export interface ProfileStats {
   lifetimeSeconds: number
   thisWeekSeconds: number
+  todaySeconds: number
   streakDays: number
+  /** Seconds per local day for the last 7 days, oldest first; `date` is YYYY-MM-DD. */
+  lastSevenDays: { date: string; seconds: number }[]
 }
 
 export function profileStats(
@@ -48,10 +51,12 @@ export function profileStats(
   const perDay = new Map<string, number>()
   let lifetimeSeconds = 0
   let thisWeekSeconds = 0
+  let todaySeconds = 0
   for (const s of sessions) {
     const day = localDate(s.startedAtMs, timeZone)
     lifetimeSeconds += s.focusSeconds
     if (weekStart(day) === thisWeek) thisWeekSeconds += s.focusSeconds
+    if (day === today) todaySeconds += s.focusSeconds
     perDay.set(day, (perDay.get(day) ?? 0) + s.focusSeconds)
   }
   const studied = (d: string) => (perDay.get(d) ?? 0) >= STREAK_DAY_MIN_SECONDS
@@ -62,5 +67,9 @@ export function profileStats(
     streakDays += 1
     cursor = addDays(cursor, -1)
   }
-  return { lifetimeSeconds, thisWeekSeconds, streakDays }
+  const lastSevenDays = [6, 5, 4, 3, 2, 1, 0].map((back) => {
+    const date = addDays(today, -back)
+    return { date, seconds: perDay.get(date) ?? 0 }
+  })
+  return { lifetimeSeconds, thisWeekSeconds, todaySeconds, streakDays, lastSevenDays }
 }

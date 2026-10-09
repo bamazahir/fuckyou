@@ -13,7 +13,7 @@ export function Screen({ children }: { children: ReactNode }) {
 export function ErrorText({ code }: { code: string | null }) {
   if (!code) return null
   return (
-    <p role="alert" className="mt-3 text-sm font-bold text-ember">
+    <p role="alert" className="mt-3 text-sm font-bold text-danger">
       {errorMessage(code)}
     </p>
   )

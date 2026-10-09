@@ -1,52 +1,100 @@
 import { test } from '@playwright/test'
-import { mockSupabase, readyProfile, signIn } from './mock-supabase'
+import { miaLive, mockSupabase, otherAvatar, readyProfile, sharedRoom, signIn } from './mock-supabase'
 
 // Screenshot set for the studyroom-look §4 review. Off by default: SCREENSHOTS=1 pnpm test:e2e screens
 test.skip(!process.env.SCREENSHOTS, 'set SCREENSHOTS=1 to capture review screenshots')
 
-for (const hour of [14, 23]) {
-  const when = hour === 14 ? 'day' : 'night'
+const THEMES = ['lamplight', 'library', 'blossom', 'observatory'] as const
+const crowd = [
+  miaLive,
+  {
+    ...miaLive,
+    user_id: 'u3',
+    display_name: 'Leo',
+    state: 'break',
+    break_until: new Date(Date.now() + 240_000).toISOString(),
+    avatar: { colors: { ...otherAvatar.colors, body: '#7FB2D9', top: '#6FA06B' } },
+  },
+  {
+    ...miaLive,
+    user_id: 'u4',
+    display_name: 'Noor',
+    kind: 'stopwatch',
+    planned_seconds: null,
+    status_line: 'TOK essay',
+    avatar: {
+      colors: { ...otherAvatar.colors, skin: '#8A5734', hair: '#2B2622', body: '#C7A6E0', top: '#F6EFE4' },
+    },
+  },
+]
 
-  test(`screens (${when})`, async ({ page }, info) => {
-    const shot = (name: string) =>
-      page.screenshot({ path: `test-results/screens/${info.project.name}-${when}-${name}.png` })
-    await page.clock.setFixedTime(new Date(2026, 9, 8, hour, 0, 0))
-
-    await mockSupabase(page)
-    await page.goto('/signin')
-    await shot('01-signin')
-
-    await page.unrouteAll()
-    await mockSupabase(page)
-    await signIn(page)
-    await page.goto('/onboarding')
-    await page.getByLabel('Where do you live?').selectOption('GB')
-    await page.getByText('16–17').click()
-    await shot('02-onboarding-age')
-    await page.getByRole('button', { name: 'Next' }).click()
-    await page.getByLabel('Handle').fill('ana')
-    await page.getByLabel('Display name').fill('Ana')
-    await page.getByRole('button', { name: 'Next' }).click()
-    await shot('03-onboarding-bean')
-
-    await page.unrouteAll()
-    await mockSupabase(page, { profile: readyProfile })
-    await page.goto('/')
-    await shot('04-home')
-    await page.goto('/room/room-personal')
-    await shot('05-room-idle')
-    await page.getByLabel('What are you working on?').fill('HL Chem IA — data analysis')
-    await page.getByRole('button', { name: 'Start' }).click()
-    await page.getByTestId('timer').waitFor()
-    await shot('06-room-running')
-    await page.getByRole('button', { name: 'End early' }).click()
-    await page.getByRole('dialog').waitFor()
-    await shot('07-end-sheet')
-    await page.getByLabel('What did you get done?').fill('finished the data table')
-    await page.getByRole('button', { name: 'Save note' }).click()
-    await shot('08-break')
-    await page.goto('/profile')
-    await page.getByText('finished the data table').waitFor()
-    await shot('09-profile')
-  })
+for (const theme of THEMES) {
+  for (const mode of ['light', 'dark'] as const) {
+    test(`screens ${theme} ${mode}`, async ({ page }, info) => {
+      const shot = (name: string) =>
+        page.screenshot({
+          path: `test-results/screens/${info.project.name}-${theme}-${mode}-${name}.png`,
+          fullPage: true,
+        })
+      await page.addInitScript(
+        ([t, m]) => window.localStorage.setItem('studyroom.theme', JSON.stringify({ theme: t, mode: m })),
+        [theme, mode] as const,
+      )
+      await page.clock.setFixedTime(new Date(2026, 9, 8, mode === 'dark' ? 23 : 14, 0, 0))
+      await mockSupabase(page, {
+        profile: readyProfile,
+        rooms: [
+          sharedRoom(),
+          sharedRoom({ id: 'room-2', name: 'Maths HL', studying_count: 0, studying: [], member_count: 5 }),
+        ],
+        live: crowd,
+        sessions: [
+          {
+            id: 'h1',
+            user_id: readyProfile.id,
+            room_id: 'room-personal',
+            sitting_id: 's',
+            kind: 'pomodoro',
+            status: 'completed',
+            status_line: null,
+            planned_seconds: 1500,
+            started_at: new Date(2026, 9, 8, 9, 0).toISOString(),
+            ended_at: new Date(2026, 9, 8, 9, 25).toISOString(),
+            next_checkin_at: null,
+            focus_seconds: 1500,
+            note: 'finished Q3 data table',
+            note_public: false,
+          },
+          {
+            id: 'h2',
+            user_id: readyProfile.id,
+            room_id: 'room-chem',
+            sitting_id: 't',
+            kind: 'stopwatch',
+            status: 'completed',
+            status_line: null,
+            planned_seconds: null,
+            started_at: new Date(2026, 9, 6, 19, 0).toISOString(),
+            ended_at: new Date(2026, 9, 6, 20, 10).toISOString(),
+            next_checkin_at: null,
+            focus_seconds: 4200,
+            note: null,
+            note_public: false,
+          },
+        ],
+      })
+      await signIn(page)
+      await page.goto('/')
+      await page.getByText('IB Chem').first().waitFor()
+      await shot('home')
+      await page.goto('/room/room-chem')
+      await page.getByRole('button', { name: /^Mia, Focusing/ }).waitFor()
+      await shot('room')
+      if (theme === 'lamplight') {
+        await page.goto('/profile')
+        await page.getByText('Focus, last 7 days').waitFor()
+        await shot('profile')
+      }
+    })
+  }
 }
