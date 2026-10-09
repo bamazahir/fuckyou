@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { LoadFailed } from '../../components/LoadFailed'
 import { Dialog } from '../../components/Dialog'
 import { ErrorText } from '../../components/Screen'
 import { copy } from '../../content/copy'
@@ -37,17 +38,21 @@ export function RoomSettings({
   const [newName, setNewName] = useState(name)
   const [error, setError] = useState<string | null>(null)
   const [reports, setReports] = useState<Report[] | null>(null)
+  const [reportsFailed, setReportsFailed] = useState(false)
+  const [attempt, setAttempt] = useState(0)
   const reload = useRooms((s) => s.load)
 
   useEffect(() => {
     let cancelled = false
-    void supabase.rpc('room_reports', { p_room_id: roomId }).then(({ data }) => {
-      if (!cancelled) setReports((data as Report[] | null) ?? [])
+    void supabase.rpc('room_reports', { p_room_id: roomId }).then(({ data, error: err }) => {
+      if (cancelled) return
+      setReportsFailed(Boolean(err))
+      if (!err) setReports((data as Report[] | null) ?? [])
     })
     return () => {
       cancelled = true
     }
-  }, [roomId])
+  }, [roomId, attempt])
 
   async function rename(e: FormEvent) {
     e.preventDefault()
@@ -132,6 +137,7 @@ export function RoomSettings({
         <p className="mt-1 text-sm text-muted">{t.newLinkHint}</p>
       </div>
       <h3 className="font-display mt-6 font-bold">{t.reports}</h3>
+      {reportsFailed && <LoadFailed compact onRetry={() => setAttempt((n) => n + 1)} />}
       {reports !== null && reports.length === 0 && <p className="text-sm text-muted">{t.noReports}</p>}
       <ul className="mt-2 space-y-2 text-sm">
         {(reports ?? []).map((r) => (

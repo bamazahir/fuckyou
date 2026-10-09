@@ -6,7 +6,8 @@ import { copy } from '../../content/copy'
 import { DEFAULT_PERSONAL, PERSONAL_SIZE } from '../../content/layouts'
 import type { LayoutItem } from '../../core/grid'
 import type { Avatar } from '../../lib/db'
-import { supabase } from '../../lib/supabase'
+import { rpcErrorCode, supabase } from '../../lib/supabase'
+import { Loading, LoadFailed } from '../../components/LoadFailed'
 import { RoomView } from '../room/RoomView'
 
 const t = copy.visit
@@ -19,21 +20,33 @@ export function VisitPage() {
   const [room, setRoom] = useState<
     { display_name: string; avatar: Avatar; layout: LayoutItem[] } | null | 'denied'
   >(null)
+  const [failed, setFailed] = useState(false)
+  const [attempt, setAttempt] = useState(0)
   useEffect(() => {
     let cancelled = false
     void supabase.rpc('visit_room', { p_user_id: userId }).then(({ data, error }) => {
-      if (!cancelled)
-        setRoom(
-          error || !data
-            ? 'denied'
-            : (data as { display_name: string; avatar: Avatar; layout: LayoutItem[] }),
-        )
+      if (cancelled) return
+      const code = rpcErrorCode(error)
+      // Only the server's "no" means not allowed; anything else (offline) can be retried.
+      if (code && code !== 'not_allowed') return setFailed(true)
+      setRoom(
+        code || !data ? 'denied' : (data as { display_name: string; avatar: Avatar; layout: LayoutItem[] }),
+      )
     })
     return () => {
       cancelled = true
     }
-  }, [userId])
-  if (room === null) return null
+  }, [userId, attempt])
+  if (failed)
+    return (
+      <LoadFailed
+        onRetry={() => {
+          setFailed(false)
+          setAttempt((n) => n + 1)
+        }}
+      />
+    )
+  if (room === null) return <Loading />
   if (room === 'denied')
     return (
       <div className="card p-5">

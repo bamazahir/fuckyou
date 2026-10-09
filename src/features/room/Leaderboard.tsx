@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { LoadFailed } from '../../components/LoadFailed'
 import { Bean } from '../../components/Bean'
 import { copy } from '../../content/copy'
 import { shortDuration } from '../../core/room'
@@ -18,16 +19,20 @@ export function Leaderboard({
 }) {
   const [tab, setTab] = useState<LeaderboardTab>('week')
   const [rows, setRows] = useState<LeaderRow[] | null>(null)
+  const [failed, setFailed] = useState(false)
+  const [attempt, setAttempt] = useState(0)
 
   useEffect(() => {
     let cancelled = false
-    void supabase.rpc('leaderboard', { p_room_id: roomId, p_tab: tab }).then(({ data }) => {
-      if (!cancelled) setRows((data as LeaderRow[] | null) ?? [])
+    void supabase.rpc('leaderboard', { p_room_id: roomId, p_tab: tab }).then(({ data, error }) => {
+      if (cancelled) return
+      setFailed(Boolean(error))
+      if (!error) setRows((data as LeaderRow[] | null) ?? [])
     })
     return () => {
       cancelled = true
     }
-  }, [roomId, tab, refreshKey])
+  }, [roomId, tab, refreshKey, attempt])
 
   return (
     <div>
@@ -46,7 +51,14 @@ export function Leaderboard({
         ))}
       </div>
       <p className="mt-2 text-sm text-muted">{copy.room.boardHint[tab]}</p>
-      {rows !== null && rows.length === 0 && <p className="mt-3 text-muted">{copy.room.boardEmpty}</p>}
+      {failed && (
+        <div className="mt-3">
+          <LoadFailed compact onRetry={() => setAttempt((n) => n + 1)} />
+        </div>
+      )}
+      {!failed && rows !== null && rows.length === 0 && (
+        <p className="mt-3 text-muted">{copy.room.boardEmpty}</p>
+      )}
       <ol className="mt-2 divide-y-2 divide-surface-2" aria-label={copy.room.boards[tab]}>
         {(rows ?? []).map((r) => (
           <li key={r.user_id} className="flex items-center gap-3 py-2">

@@ -25,7 +25,9 @@ export function WaitingPage() {
   }
 
   async function deleteInstead() {
-    await supabase.rpc('delete_my_account')
+    setError(null)
+    const { error: err } = await supabase.rpc('delete_my_account')
+    if (err) return setError(rpcErrorCode(err))
     await signOut()
   }
 

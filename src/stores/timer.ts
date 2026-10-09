@@ -37,7 +37,9 @@ export const useTimer = create<TimerState>((set, get) => ({
   error: null,
 
   loadActive: async () => {
-    const { data } = await supabase.from('sessions').select('*').eq('status', 'active').maybeSingle()
+    const { data, error } = await supabase.from('sessions').select('*').eq('status', 'active').maybeSingle()
+    // Offline at launch: check again once the connection is back, so a running timer isn't shown as idle.
+    if (error) return void window.addEventListener('online', () => void get().loadActive(), { once: true })
     if (data) set({ phase: { name: 'running', session: data as SessionRow } })
   },
 
@@ -69,9 +71,12 @@ export const useTimer = create<TimerState>((set, get) => ({
     if (phase.name !== 'running') return
     const { data, error } = await supabase.rpc('checkin', { p_session_id: phase.session.id })
     if (error) {
+      const code = rpcErrorCode(error)
+      if (code !== 'checkin_not_possible') return set({ error: code })
       // Too late: the server already ended it. Show the end sheet with the stored result.
       const { data: row } = await supabase.from('sessions').select('*').eq('id', phase.session.id).single()
       if (row) set({ phase: { name: 'ended', session: row as SessionRow } })
+      else set({ error: 'generic' })
       return
     }
     set({ phase: { name: 'running', session: data as SessionRow } })

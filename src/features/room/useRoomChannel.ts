@@ -35,6 +35,7 @@ export function useRoomChannel(roomId: string) {
   const blocked = useRooms((s) => s.blocked)
   const toast = useUi((s) => s.toast)
   const [live, setLive] = useState<LiveMember[] | null>(null)
+  const [liveFailed, setLiveFailed] = useState(false)
   const [online, setOnline] = useState<Set<string>>(new Set())
   const [bubbles, setBubbles] = useState<Bubble[]>([])
   const [removed, setRemoved] = useState(false)
@@ -55,7 +56,9 @@ export function useRoomChannel(roomId: string) {
   useEffect(() => {
     let cancelled = false
     void fetchLive(roomId).then((rows) => {
-      if (cancelled || rows === null) return
+      if (cancelled) return
+      setLiveFailed(rows === null)
+      if (rows === null) return
       const studying = new Set(rows.filter((r) => r.state === 'focus').map((r) => r.user_id))
       if (known.current) {
         for (const r of rows) {
@@ -156,5 +159,5 @@ export function useRoomChannel(roomId: string) {
     [me],
   )
 
-  return { live, online, bubbles, removed, refresh, react, nudge, syncKey, setSync }
+  return { live, liveFailed, online, bubbles, removed, refresh, react, nudge, syncKey, setSync }
 }

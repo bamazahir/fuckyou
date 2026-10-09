@@ -6,28 +6,39 @@ const PENDING_INVITE_KEY = 'studyroom.pendingInvite'
 
 interface RoomsState {
   rooms: MyRoom[] | null
+  /** Set when loading rooms failed (rooms stays as it was, so a failure never reads as "no rooms"). */
+  roomsError: string | null
   blocked: Set<string>
+  blocksError: string | null
   load: () => Promise<void>
   loadBlocks: () => Promise<void>
   create: (name: string) => Promise<{ id?: string; error?: string }>
   join: (code: string) => Promise<{ id?: string; error?: string }>
   leave: (roomId: string) => Promise<string | null>
-  block: (userId: string) => Promise<void>
-  unblock: (userId: string) => Promise<void>
+  /** Returns an error code, or null once the server has it. */
+  block: (userId: string) => Promise<string | null>
+  unblock: (userId: string) => Promise<string | null>
 }
 
 export const useRooms = create<RoomsState>((set, get) => ({
   rooms: null,
+  roomsError: null,
   blocked: new Set(),
+  blocksError: null,
 
   load: async () => {
-    const { data } = await supabase.rpc('my_rooms')
-    set({ rooms: (data as MyRoom[] | null) ?? [] })
+    const { data, error } = await supabase.rpc('my_rooms')
+    if (error) return set({ roomsError: rpcErrorCode(error) })
+    set({ rooms: (data as MyRoom[] | null) ?? [], roomsError: null })
   },
 
   loadBlocks: async () => {
-    const { data } = await supabase.from('blocks').select('blocked_id')
-    set({ blocked: new Set(((data as { blocked_id: string }[] | null) ?? []).map((b) => b.blocked_id)) })
+    const { data, error } = await supabase.from('blocks').select('blocked_id')
+    if (error) return set({ blocksError: rpcErrorCode(error) })
+    set({
+      blocked: new Set(((data as { blocked_id: string }[] | null) ?? []).map((b) => b.blocked_id)),
+      blocksError: null,
+    })
   },
 
   create: async (name) => {
@@ -53,15 +64,19 @@ export const useRooms = create<RoomsState>((set, get) => ({
   },
 
   block: async (userId) => {
-    await supabase.rpc('block_user', { p_user_id: userId })
+    const { error } = await supabase.rpc('block_user', { p_user_id: userId })
+    if (error) return rpcErrorCode(error)
     set({ blocked: new Set([...get().blocked, userId]) })
+    return null
   },
 
   unblock: async (userId) => {
-    await supabase.rpc('unblock_user', { p_user_id: userId })
+    const { error } = await supabase.rpc('unblock_user', { p_user_id: userId })
+    if (error) return rpcErrorCode(error)
     const next = new Set(get().blocked)
     next.delete(userId)
     set({ blocked: next })
+    return null
   },
 }))
 

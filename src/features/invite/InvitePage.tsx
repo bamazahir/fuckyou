@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { AvatarStack } from '../../components/AvatarStack'
+import { LoadFailed } from '../../components/LoadFailed'
 import { RoomScene } from '../../components/RoomScene'
 import { ErrorText, Screen } from '../../components/Screen'
 import { useDaypart } from '../../components/useDaypart'
-import { copy } from '../../content/copy'
+import { copy, errorMessage } from '../../content/copy'
 import { parseInviteCode } from '../../core/room'
 import type { RoomPreview } from '../../lib/db'
 import { rpcErrorCode, supabase } from '../../lib/supabase'
@@ -23,6 +24,7 @@ export function InvitePage() {
   const join = useRooms((s) => s.join)
   const [preview, setPreview] = useState<RoomPreview | null>(null)
   const [error, setError] = useState<string | null>(code ? null : 'room_not_found')
+  const [attempt, setAttempt] = useState(0)
 
   useEffect(() => {
     if (!code) return
@@ -35,7 +37,7 @@ export function InvitePage() {
     return () => {
       cancelled = true
     }
-  }, [code])
+  }, [code, attempt])
 
   async function onJoin() {
     if (!code) return
@@ -76,7 +78,18 @@ export function InvitePage() {
               </button>
             </>
           ) : (
-            error && <p className="font-bold">{t.notFound}</p>
+            error &&
+            (error === 'room_not_found' || error === 'rate_limited' ? (
+              <p className="font-bold">{error === 'rate_limited' ? errorMessage(error) : t.notFound}</p>
+            ) : (
+              <LoadFailed
+                compact
+                onRetry={() => {
+                  setError(null)
+                  setAttempt((n) => n + 1)
+                }}
+              />
+            ))
           )}
           {preview && <ErrorText code={error} />}
         </div>

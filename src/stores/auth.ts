@@ -1,7 +1,9 @@
 import type { Session } from '@supabase/supabase-js'
 import { create } from 'zustand'
 import type { Avatar, Profile } from '../lib/db'
-import { isConfigured, supabase } from '../lib/supabase'
+import { isConfigured, rpcErrorCode, supabase } from '../lib/supabase'
+import { errorMessage } from '../content/copy'
+import { useUi } from './ui'
 import { usePush } from './push'
 import { useTheme } from './theme'
 import { useWallet } from './wallet'
@@ -54,8 +56,12 @@ export const useAuth = create<AuthState>((set, get) => ({
       supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle(),
       supabase.from('rooms').select('id').eq('is_personal', true).maybeSingle(),
     ])
-    if (profileRes.error) {
-      const e = profileRes.error as { code?: string; message?: string }
+    // Once the app is open, a failed background refresh (token refresh, reconnect) keeps what we have
+    // instead of swapping the whole app for the error page mid-session.
+    const loaded = get().status === 'ready' && get().profile?.id === session.user.id
+    if (loaded && (profileRes.error || roomRes.error)) return
+    if (profileRes.error || roomRes.error) {
+      const e = (profileRes.error ?? roomRes.error) as { code?: string; message?: string }
       set({ status: 'error', loadError: [e.code, e.message].filter(Boolean).join(': ') || 'unknown' })
       return
     }
@@ -86,7 +92,9 @@ export const useAuth = create<AuthState>((set, get) => ({
     const { error } = await supabase.from('profiles').update({ settings }).eq('id', profile.id)
     if (error) {
       set({ profile })
-      return 'generic'
+      const code = rpcErrorCode(error) === 'offline' ? 'offline' : 'generic'
+      useUi.getState().toast(errorMessage(code))
+      return code
     }
     return null
   },

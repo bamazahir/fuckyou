@@ -7,6 +7,7 @@ import type { LayoutItem } from '../../core/grid'
 import { rpcErrorCode, supabase } from '../../lib/supabase'
 import { useAuth } from '../../stores/auth'
 import { useWallet } from '../../stores/wallet'
+import { Loading, LoadFailed } from '../../components/LoadFailed'
 import { RoomEditor } from './RoomEditor'
 
 const t = copy.decor
@@ -16,11 +17,12 @@ export function DecorateMyRoomPage() {
   const navigate = useNavigate()
   const daypart = useDaypart()
   const personalRoomId = useAuth((s) => s.personalRoomId)
-  const { owned, personalLayout, load, savePersonalLayout } = useWallet()
+  const { owned, personalLayout, error, load, savePersonalLayout } = useWallet()
   useEffect(() => {
     void load()
   }, [load])
-  if (!personalRoomId || personalLayout === null) return null
+  if (!personalRoomId || personalLayout === null)
+    return error ? <LoadFailed onRetry={() => void load()} /> : <Loading />
   return (
     <RoomEditor
       size={PERSONAL_SIZE}
@@ -41,6 +43,8 @@ export function DecorateRoomPage() {
   const navigate = useNavigate()
   const daypart = useDaypart()
   const [data, setData] = useState<{ layout: LayoutItem[]; owned: Map<string, number> } | null>(null)
+  const [failed, setFailed] = useState(false)
+  const [attempt, setAttempt] = useState(0)
   useEffect(() => {
     let cancelled = false
     void Promise.all([
@@ -48,6 +52,8 @@ export function DecorateRoomPage() {
       supabase.from('room_inventory').select('item_id, qty').eq('room_id', roomId),
     ]).then(([info, inv]) => {
       if (cancelled) return
+      // Never open the editor on a guess: saving the default layout would overwrite the real room.
+      if (info.error || inv.error || !info.data) return setFailed(true)
       setData({
         layout: ((info.data as { layout?: LayoutItem[] } | null)?.layout ?? []) as LayoutItem[],
         owned: new Map(
@@ -58,8 +64,17 @@ export function DecorateRoomPage() {
     return () => {
       cancelled = true
     }
-  }, [roomId])
-  if (!data) return null
+  }, [roomId, attempt])
+  if (failed)
+    return (
+      <LoadFailed
+        onRetry={() => {
+          setFailed(false)
+          setAttempt((n) => n + 1)
+        }}
+      />
+    )
+  if (!data) return <Loading />
   return (
     <RoomEditor
       size={SHARED_SIZE}

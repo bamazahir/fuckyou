@@ -7,6 +7,7 @@ import { copy } from '../../content/copy'
 import { shortDuration } from '../../core/room'
 import { useAuth } from '../../stores/auth'
 import { useRooms } from '../../stores/rooms'
+import { Loading, LoadFailed } from '../../components/LoadFailed'
 import { useTimer } from '../../stores/timer'
 import { useMyHistory } from '../stats/useMyHistory'
 import { CreateRoomDialog, JoinRoomDialog } from './RoomDialogs'
@@ -18,7 +19,7 @@ export function HomePage() {
   const profile = useAuth((s) => s.profile)
   const personalRoomId = useAuth((s) => s.personalRoomId)
   const studying = useTimer((s) => s.phase.name === 'running')
-  const { rooms, load } = useRooms()
+  const { rooms, roomsError, load } = useRooms()
   const { stats } = useMyHistory()
   const [dialog, setDialog] = useState<'create' | 'join' | null>(null)
 
@@ -82,6 +83,7 @@ export function HomePage() {
           </div>
         </div>
 
+        {rooms === null && (roomsError ? <LoadFailed onRetry={() => void load()} /> : <Loading />)}
         {rooms !== null && rooms.length === 0 && (
           <div className="card p-6">
             <h3 className="font-display text-xl font-bold">{t.emptyTitle}</h3>

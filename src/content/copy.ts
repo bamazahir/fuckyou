@@ -11,6 +11,7 @@ export const copy = {
   },
   errors: {
     generic: 'Something went wrong. Try again.',
+    offline: 'Couldn’t reach Studyroom. Check your connection and try again.',
     handle_taken: 'That handle is taken. Try another.',
     invalid_handle: 'Handles are 3–20 letters, numbers or underscores.',
     invalid_display_name: 'Names are 1–30 characters.',
@@ -269,6 +270,7 @@ export const copy = {
     remove: 'Remove from room',
     removeConfirm: (name: string) => `Remove ${name}? They can’t rejoin with the link.`,
     sessions: 'Recent sessions',
+    noSessions: 'No sessions in this room yet.',
     void: 'Void',
     voidReason: 'Why? (shown to them)',
     voided: 'Voided',

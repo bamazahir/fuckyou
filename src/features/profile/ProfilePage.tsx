@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Loading, LoadFailed } from '../../components/LoadFailed'
 import { Bean } from '../../components/Bean'
 import { copy } from '../../content/copy'
 import { shortDuration } from '../../core/room'
@@ -19,7 +20,7 @@ const DAY_MS = 24 * 60 * 60 * 1000
 export function ProfilePage() {
   const profile = useAuth((s) => s.profile)
   const [reloadKey, setReloadKey] = useState(0)
-  const { sessions, stats } = useMyHistory(reloadKey)
+  const { sessions, stats, failed, retry } = useMyHistory(reloadKey)
   const [noteFor, setNoteFor] = useState<SessionRow | null>(null)
 
   if (!profile) return null
@@ -66,6 +67,7 @@ export function ProfilePage() {
         <h2 id="history-heading" className="font-display text-xl font-bold">
           {t.historyTitle}
         </h2>
+        {sessions === null && (failed ? <LoadFailed compact onRetry={retry} /> : <Loading />)}
         {sessions !== null && sessions.length === 0 && <p className="mt-2 text-muted">{t.historyEmpty}</p>}
         <ul className="mt-3 divide-y-2 divide-surface-2">
           {(sessions ?? []).slice(0, 30).map((s) => {

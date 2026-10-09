@@ -22,6 +22,8 @@ import { supabase } from './lib/supabase'
 import { useAuth, type AuthStatus } from './stores/auth'
 import { useTimer } from './stores/timer'
 import { useWallet } from './stores/wallet'
+import { useUi } from './stores/ui'
+import { errorMessage } from './content/copy'
 
 // Screens most visits never open load on demand (smaller first load on school Wi-Fi).
 const named = <T extends string>(load: () => Promise<Record<T, React.ComponentType>>, name: T) =>
@@ -143,12 +145,14 @@ export function App() {
     // Finish an invite that was opened before signing in.
     const code = pendingInvite.get()
     if (code) {
-      pendingInvite.clear()
       void useRooms
         .getState()
         .join(code)
         .then((res) => {
+          // Keep the invite if joining failed for a reason worth retrying (offline); say what happened.
+          if (res.id || res.error !== 'offline') pendingInvite.clear()
           if (res.id) void router.navigate(`/room/${res.id}`)
+          else useUi.getState().toast(errorMessage(res.error ?? 'generic'))
         })
     }
   }, [status])

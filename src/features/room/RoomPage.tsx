@@ -3,6 +3,7 @@ import { Navigate, useParams } from 'react-router-dom'
 import { copy } from '../../content/copy'
 import { useAuth } from '../../stores/auth'
 import { useRooms } from '../../stores/rooms'
+import { Loading, LoadFailed } from '../../components/LoadFailed'
 import { useTimer } from '../../stores/timer'
 import { PersonalRoomView } from '../myroom/PersonalRoomView'
 import { NotFoundPage } from '../NotFoundPage'
@@ -68,15 +69,15 @@ function SoloRoom({ roomId }: { roomId: string }) {
 export function RoomPage() {
   const { roomId } = useParams()
   const personalRoomId = useAuth((s) => s.personalRoomId)
-  const { rooms, load } = useRooms()
+  const { rooms, roomsError, load } = useRooms()
 
   useEffect(() => {
-    if (rooms === null) void load()
-  }, [rooms, load])
+    if (rooms === null && !roomsError) void load()
+  }, [rooms, roomsError, load])
 
   if (!roomId) return <Navigate to="/" replace />
   if (roomId === personalRoomId) return <SoloRoom roomId={roomId} />
-  if (rooms === null) return null
+  if (rooms === null) return roomsError ? <LoadFailed onRetry={() => void load()} /> : <Loading />
   const room = rooms.find((r) => r.id === roomId)
   return room ? <SharedRoom key={room.id} room={room} /> : <NotFoundPage />
 }

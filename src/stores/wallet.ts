@@ -8,6 +8,8 @@ interface WalletState {
   earnedToday: number
   owned: Map<string, number>
   personalLayout: LayoutItem[] | null
+  /** Set when the last load failed; the previous values are kept (never shown as 0 coins). */
+  error: string | null
   load: () => Promise<void>
   buy: (itemId: string, qty?: number) => Promise<string | null>
   donate: (roomId: string, amount: number) => Promise<string | null>
@@ -20,6 +22,7 @@ export const useWallet = create<WalletState>((set, get) => ({
   earnedToday: 0,
   owned: new Map(),
   personalLayout: null,
+  error: null,
 
   load: async () => {
     const [wallet, inv, room] = await Promise.all([
@@ -27,6 +30,8 @@ export const useWallet = create<WalletState>((set, get) => ({
       supabase.from('inventory').select('item_id, qty'),
       supabase.from('rooms').select('layout').eq('is_personal', true).maybeSingle(),
     ])
+    const failed = wallet.error ?? inv.error ?? room.error
+    if (failed) return set({ error: rpcErrorCode(failed) })
     const w = wallet.data as { balance?: number; earned_today?: number } | null
     set({
       balance: w?.balance ?? 0,
@@ -34,6 +39,7 @@ export const useWallet = create<WalletState>((set, get) => ({
       owned: new Map(
         ((inv.data as { item_id: string; qty: number }[] | null) ?? []).map((r) => [r.item_id, r.qty]),
       ),
+      error: null,
       personalLayout: ((room.data as { layout?: LayoutItem[] } | null)?.layout ?? null) as
         LayoutItem[] | null,
     })
@@ -60,5 +66,5 @@ export const useWallet = create<WalletState>((set, get) => ({
     return null
   },
 
-  clear: () => set({ balance: null, earnedToday: 0, owned: new Map(), personalLayout: null }),
+  clear: () => set({ balance: null, earnedToday: 0, owned: new Map(), personalLayout: null, error: null }),
 }))

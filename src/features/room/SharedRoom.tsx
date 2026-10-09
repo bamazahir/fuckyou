@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Loading, LoadFailed } from '../../components/LoadFailed'
 import { Link, useNavigate } from 'react-router-dom'
 import { Dialog } from '../../components/Dialog'
 import { CoinIcon } from '../../components/icons'
@@ -37,8 +38,9 @@ import { REACTIONS, useRoomChannel } from './useRoomChannel'
 const t = copy.room
 const SCENE_BOX = 'h-[min(52svh,480px)] min-h-72 lg:h-[560px]'
 
-async function fetchMembers(roomId: string): Promise<RoomMember[]> {
-  const { data } = await supabase.rpc('room_members_list', { p_room_id: roomId })
+async function fetchMembers(roomId: string): Promise<RoomMember[] | null> {
+  const { data, error } = await supabase.rpc('room_members_list', { p_room_id: roomId })
+  if (error) return null
   return (data as RoomMember[] | null) ?? []
 }
 
@@ -68,8 +70,9 @@ export function SharedRoom({ room }: { room: MyRoom }) {
   const { phase, afterEnded } = useTimer()
   const { leave } = useRooms()
   const toast = useUi((s) => s.toast)
-  const { live, online, bubbles, removed, refresh, react, nudge, syncKey, setSync } = useRoomChannel(room.id)
-  const { info, refetch: refetchInfo } = useRoomInfo(room.id, syncKey)
+  const { live, liveFailed, online, bubbles, removed, refresh, react, nudge, syncKey, setSync } =
+    useRoomChannel(room.id)
+  const { info, failed: infoFailed, refetch: refetchInfo } = useRoomInfo(room.id, syncKey)
   const sync = info?.sync ?? null
   // Received nudges are dropped during a shared focus too, not just the button (SPEC §6.2.1).
   useEffect(() => setSync(sync), [setSync, sync])
@@ -83,6 +86,7 @@ export function SharedRoom({ room }: { room: MyRoom }) {
   const station = resolveStation(STATIONS, picked && picked.over === roomStation ? picked.id : roomStation)
   useRoomRadio(room.id, station)
   const [members, setMembers] = useState<RoomMember[] | null>(null)
+  const [membersFailed, setMembersFailed] = useState(false)
   const [openMember, setOpenMember] = useState<RoomMember | null>(null)
   const [sheet, setSheet] = useState<'menu' | 'settings' | 'leave' | 'donate' | null>(null)
   const [membersKey, setMembersKey] = useState(0)
@@ -91,7 +95,9 @@ export function SharedRoom({ room }: { room: MyRoom }) {
   useEffect(() => {
     let cancelled = false
     void fetchMembers(room.id).then((rows) => {
-      if (!cancelled) setMembers(rows)
+      if (cancelled) return
+      setMembersFailed(rows === null)
+      if (rows) setMembers(rows)
     })
     return () => {
       cancelled = true
@@ -109,7 +115,11 @@ export function SharedRoom({ room }: { room: MyRoom }) {
   const liveRows = useMemo(() => live ?? [], [live])
   const studyingIds = liveRows.filter((r) => r.state === 'focus').map((r) => r.user_id)
   const mine = liveRows.find((r) => r.user_id === me?.id)
-  const banner = me ? roomBanner(studyingIds, me.id, mine?.sitting_seconds ?? 0, new Date().getHours()) : null
+  // No banner until we know who's here (an empty list while loading isn't "nobody's studying").
+  const banner =
+    me && live !== null
+      ? roomBanner(studyingIds, me.id, mine?.sitting_seconds ?? 0, new Date().getHours())
+      : null
   const bubbleFor = (uid: string) =>
     [...bubbles].reverse().find((b) => b.userId === uid && Date.now() - b.at < 4000)?.text
   const onlineIdle = useMemo(
@@ -210,9 +220,11 @@ export function SharedRoom({ room }: { room: MyRoom }) {
       <div className="grid gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(20rem,1fr)]">
         <section aria-label={t.focusingLabel} className="min-w-0 space-y-4">
           <div className="card card-raised overflow-hidden">
-            {/* Mount the scene once live state is in, so only later arrivals walk in. */}
-            {live === null ? (
-              <div className={`scene ${SCENE_BOX}`} />
+            {/* Mount the scene once live state and the layout are in, so only later arrivals walk in. */}
+            {live === null || (info === null && !infoFailed) ? (
+              <div className={`scene ${SCENE_BOX} grid place-items-center p-4`}>
+                {liveFailed ? <LoadFailed compact onRetry={refresh} /> : <Loading />}
+              </div>
             ) : (
               <RoomView
                 className={SCENE_BOX}
@@ -307,7 +319,16 @@ export function SharedRoom({ room }: { room: MyRoom }) {
                   onPick={(id) => void pickStation(id)}
                 />
               ) : (
-                <MembersList members={members ?? []} live={byId} now={now} onOpen={(m) => setOpenMember(m)} />
+                <>
+                  {membersFailed && <LoadFailed compact onRetry={() => setMembersKey((k) => k + 1)} />}
+                  {members === null && !membersFailed && <Loading />}
+                  <MembersList
+                    members={members ?? []}
+                    live={byId}
+                    now={now}
+                    onOpen={(m) => setOpenMember(m)}
+                  />
+                </>
               )}
             </div>
           </section>
@@ -350,6 +371,7 @@ export function SharedRoom({ room }: { room: MyRoom }) {
                 type="checkbox"
                 className="mt-1 h-5 w-5 accent-[var(--accent)]"
                 checked={notifyOn ?? info?.notifyActive ?? false}
+                disabled={!info}
                 onChange={(e) => void toggleNotify(e.target.checked)}
               />
               <span>

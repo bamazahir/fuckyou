@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Loading, LoadFailed } from '../../components/LoadFailed'
 import { copy } from '../../content/copy'
 import { percent, toCsv } from '../../core/csv'
 import { supabase } from '../../lib/supabase'
@@ -98,16 +99,20 @@ function HoursChart({ weeks }: { weeks: Week[] }) {
 
 export function AdminMetrics() {
   const [m, setM] = useState<Metrics | null>(null)
+  const [failed, setFailed] = useState(false)
+  const [attempt, setAttempt] = useState(0)
   useEffect(() => {
     let cancelled = false
-    void supabase.rpc('admin_metrics', { p_weeks: 12 }).then(({ data }) => {
-      if (!cancelled && data) setM(data as Metrics)
+    void supabase.rpc('admin_metrics', { p_weeks: 12 }).then(({ data, error }) => {
+      if (cancelled) return
+      setFailed(Boolean(error) || !data)
+      if (!error && data) setM(data as Metrics)
     })
     return () => {
       cancelled = true
     }
-  }, [])
-  if (!m) return null
+  }, [attempt])
+  if (!m) return failed ? <LoadFailed onRetry={() => setAttempt((n) => n + 1)} /> : <Loading />
 
   const thisWeek = m.weekly.at(-1)
   const today = m.daily.at(-1)

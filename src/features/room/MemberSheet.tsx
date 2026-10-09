@@ -60,8 +60,8 @@ export function MemberSheet({
     let cancelled = false
     void supabase
       .rpc('room_member_sessions', { p_room_id: roomId, p_user_id: member.user_id })
-      .then(({ data }) => {
-        if (!cancelled) setSessions((data as MemberSession[] | null) ?? [])
+      .then(({ data, error: err }) => {
+        if (!cancelled) setSessions(err ? null : ((data as MemberSession[] | null) ?? []))
       })
     return () => {
       cancelled = true
@@ -71,8 +71,8 @@ export function MemberSheet({
   // This-week minutes in this room (SPEC §5.3 mini profile), from the room's own week board.
   useEffect(() => {
     let cancelled = false
-    void supabase.rpc('leaderboard', { p_room_id: roomId, p_tab: 'week' }).then(({ data }) => {
-      if (cancelled) return
+    void supabase.rpc('leaderboard', { p_room_id: roomId, p_tab: 'week' }).then(({ data, error: err }) => {
+      if (cancelled || err) return
       const row = ((data as { user_id: string; seconds: number }[] | null) ?? []).find(
         (r) => r.user_id === member.user_id,
       )
@@ -83,11 +83,22 @@ export function MemberSheet({
     }
   }, [roomId, member.user_id])
 
-  async function run(fn: string, args: Record<string, unknown>) {
+  /** True when the server accepted it; on failure the sheet stays open with the error showing. */
+  async function run(fn: string, args: Record<string, unknown>): Promise<boolean> {
     setError(null)
     const { error: err } = await supabase.rpc(fn, args)
-    if (err) return setError(rpcErrorCode(err))
+    if (err) {
+      setError(rpcErrorCode(err))
+      return false
+    }
     onChanged()
+    return true
+  }
+
+  async function toggleBlock(on: boolean) {
+    setError(null)
+    const err = on ? await block(member.user_id) : await unblock(member.user_id)
+    if (err) setError(err)
   }
 
   if (reporting) {
@@ -135,11 +146,11 @@ export function MemberSheet({
             {copy.room.nudge} 👋
           </button>
           {blocked.has(member.user_id) ? (
-            <button type="button" className="btn btn-secondary" onClick={() => void unblock(member.user_id)}>
+            <button type="button" className="btn btn-secondary" onClick={() => void toggleBlock(false)}>
               {copy.room.unblock}
             </button>
           ) : (
-            <button type="button" className="btn btn-secondary" onClick={() => void block(member.user_id)}>
+            <button type="button" className="btn btn-secondary" onClick={() => void toggleBlock(true)}>
               {copy.room.block}
             </button>
           )}
@@ -190,7 +201,9 @@ export function MemberSheet({
               className="btn btn-secondary text-sm text-danger"
               onClick={() => {
                 if (window.confirm(t.removeConfirm(member.display_name))) {
-                  void run('remove_member', { p_room_id: roomId, p_user_id: member.user_id }).then(onClose)
+                  void run('remove_member', { p_room_id: roomId, p_user_id: member.user_id }).then(
+                    (ok) => ok && onClose(),
+                  )
                 }
               }}
             >
@@ -198,6 +211,7 @@ export function MemberSheet({
             </button>
           </div>
           <h3 className="font-display mt-5 font-bold">{t.sessions}</h3>
+          {sessions?.length === 0 && <p className="mt-1 text-sm text-muted">{t.noSessions}</p>}
           <ul className="mt-2 space-y-2">
             {(sessions ?? []).map((s) => (
               <li key={s.id} className="flex flex-wrap items-center justify-between gap-2 text-sm">
@@ -224,7 +238,8 @@ export function MemberSheet({
                     className="flex w-full gap-2"
                     onSubmit={(e) => {
                       e.preventDefault()
-                      void run('void_session', { p_session_id: s.id, p_reason: reason }).then(() => {
+                      void run('void_session', { p_session_id: s.id, p_reason: reason }).then((ok) => {
+                        if (!ok) return
                         setVoidFor(null)
                         setReason('')
                       })

@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
+import { Loading, LoadFailed } from '../../components/LoadFailed'
+import { ErrorText } from '../../components/Screen'
 import { Navigate } from 'react-router-dom'
 import { copy } from '../../content/copy'
 import type { ReportRow } from '../../lib/db'
-import { supabase } from '../../lib/supabase'
+import { rpcErrorCode, supabase } from '../../lib/supabase'
 import { useAuth } from '../../stores/auth'
 import { AdminMetrics } from './AdminMetrics'
 
@@ -12,13 +14,17 @@ type Action = 'dismiss' | 'remove_content' | 'ban_user' | 'delete_room'
 export function AdminPage() {
   const isAdmin = useAuth((s) => s.profile?.is_admin)
   const [reports, setReports] = useState<ReportRow[] | null>(null)
+  const [failed, setFailed] = useState(false)
+  const [actionError, setActionError] = useState<string | null>(null)
   const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {
     if (!isAdmin) return
     let cancelled = false
-    void supabase.rpc('admin_list_reports').then(({ data }) => {
-      if (!cancelled) setReports((data as ReportRow[] | null) ?? [])
+    void supabase.rpc('admin_list_reports').then(({ data, error }) => {
+      if (cancelled) return
+      setFailed(Boolean(error))
+      if (!error) setReports((data as ReportRow[] | null) ?? [])
     })
     return () => {
       cancelled = true
@@ -29,7 +35,9 @@ export function AdminPage() {
 
   async function act(id: number, action: Action, label: string) {
     if (action !== 'dismiss' && !window.confirm(t.confirm(label))) return
-    await supabase.rpc('admin_resolve_report', { p_report_id: id, p_action: action })
+    setActionError(null)
+    const { error } = await supabase.rpc('admin_resolve_report', { p_report_id: id, p_action: action })
+    if (error) setActionError(rpcErrorCode(error))
     setReloadKey((k) => k + 1)
   }
 
@@ -39,7 +47,10 @@ export function AdminPage() {
       <AdminMetrics />
       <div className="space-y-5">
         <h2 className="font-display text-2xl font-bold">{t.title}</h2>
-        {reports !== null && reports.length === 0 && <p className="text-on-bg-muted">{t.empty}</p>}
+        {failed && <LoadFailed onRetry={() => setReloadKey((k) => k + 1)} />}
+        <ErrorText code={actionError} />
+        {!failed && reports === null && <Loading />}
+        {!failed && reports !== null && reports.length === 0 && <p className="text-on-bg-muted">{t.empty}</p>}
         <ul className="space-y-3">
           {(reports ?? []).map((r) => (
             <li key={r.id} className="card p-4">

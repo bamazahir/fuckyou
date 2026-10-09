@@ -10,8 +10,17 @@ export const supabase: SupabaseClient = createClient(
   { auth: { flowType: 'pkce', persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } },
 )
 
-/** Error codes raised by our RPCs (`raise exception '<code>'`), surfaced as the PostgREST message. */
+// fetch() failures as Chrome, Firefox and Safari word them.
+const NETWORK = /Failed to fetch|NetworkError|Load failed|network|fetch failed/i
+
+/**
+ * Error codes raised by our RPCs (`raise exception '<code>'`), surfaced as the PostgREST message.
+ * No connection → 'offline'; any other error always yields a code, so `if (error)` paths never pass.
+ */
 export function rpcErrorCode(error: { message?: string } | null): string | null {
-  if (!error?.message) return null
-  return /^[a-z_]+$/.test(error.message) ? error.message : 'unknown'
+  if (!error) return null
+  const message = error.message ?? ''
+  if (/^[a-z_]+$/.test(message)) return message
+  if (NETWORK.test(message) || (typeof navigator !== 'undefined' && !navigator.onLine)) return 'offline'
+  return 'unknown'
 }

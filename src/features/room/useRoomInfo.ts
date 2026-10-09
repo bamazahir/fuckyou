@@ -28,12 +28,15 @@ interface Row {
 /** room_info, refetched when the room's settings change (the 'sync', 'layout' and 'station' broadcasts bump `key`). */
 export function useRoomInfo(roomId: string, key: number) {
   const [info, setInfo] = useState<RoomInfo | null>(null)
+  const [failed, setFailed] = useState(false)
   const [reload, setReload] = useState(0)
   useEffect(() => {
     let cancelled = false
-    void supabase.rpc('room_info', { p_room_id: roomId }).then(({ data }) => {
+    void supabase.rpc('room_info', { p_room_id: roomId }).then(({ data, error }) => {
       const r = data as Row | null
-      if (cancelled || !r) return
+      if (cancelled) return
+      setFailed(Boolean(error) || !r)
+      if (!r) return
       setInfo({
         sync: r.sync_pomodoro
           ? { epochMs: Date.parse(r.sync_epoch), focusS: r.sync_focus_s, breakS: r.sync_break_s }
@@ -49,5 +52,5 @@ export function useRoomInfo(roomId: string, key: number) {
     }
   }, [roomId, key, reload])
   const refetch = useCallback(() => setReload((k) => k + 1), [])
-  return { info, refetch }
+  return { info, failed, refetch }
 }

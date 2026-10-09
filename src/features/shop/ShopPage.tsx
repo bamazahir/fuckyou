@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Loading, LoadFailed } from '../../components/LoadFailed'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Bean } from '../../components/Bean'
 import { CoinIcon } from '../../components/icons'
@@ -23,7 +24,7 @@ export function ShopPage() {
   const { roomId } = useParams()
   const navigate = useNavigate()
   const profile = useAuth((s) => s.profile)
-  const { balance, owned, load, buy } = useWallet()
+  const { balance, owned, load, buy, error: walletError } = useWallet()
   const rooms = useRooms((s) => s.rooms)
   const room = roomId ? rooms?.find((r) => r.id === roomId) : undefined
   const toast = useUi((s) => s.toast)
@@ -32,6 +33,7 @@ export function ShopPage() {
   const [bank, setBank] = useState<number | null>(null)
   const [roomOwned, setRoomOwned] = useState<Map<string, number>>(new Map())
   const [reload, setReload] = useState(0)
+  const [roomFailed, setRoomFailed] = useState(false)
 
   useEffect(() => {
     if (!roomId) return void load()
@@ -41,6 +43,8 @@ export function ShopPage() {
       supabase.from('room_inventory').select('item_id, qty').eq('room_id', roomId),
     ]).then(([info, inv]) => {
       if (cancelled) return
+      setRoomFailed(Boolean(info.error || inv.error))
+      if (info.error || inv.error) return
       setBank((info.data as { bank_coins?: number } | null)?.bank_coins ?? 0)
       setRoomOwned(
         new Map(
@@ -54,6 +58,14 @@ export function ShopPage() {
   }, [roomId, load, reload])
 
   if (!profile) return null
+  // Never show "0 coins" for "couldn't load": the shop waits for the real numbers.
+  const unknownFunds = roomId ? bank === null : balance === null
+  if (unknownFunds)
+    return (roomId ? roomFailed : walletError) ? (
+      <LoadFailed onRetry={() => (roomId ? setReload((k) => k + 1) : void load())} />
+    ) : (
+      <Loading />
+    )
   const funds = roomId ? (bank ?? 0) : shownBalance(balance ?? 0).coins
   const items = [...CATALOG.values()].filter((i) => i.category === tab)
 
