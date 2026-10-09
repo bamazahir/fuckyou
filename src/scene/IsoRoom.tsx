@@ -8,7 +8,7 @@ import { rotatedSize, type LayoutItem } from '../core/grid'
 import { cellCenter, isoFrame, toScreen, type IsoFrame, type Vec3 } from '../core/iso'
 import { fullLabels, labelWidth } from '../core/labels'
 import { assignSeats, MAX_LABELS, seatList, type Seat } from '../core/seats'
-import type { AvatarColors } from '../lib/db'
+import type { Avatar } from '../lib/db'
 import { useTheme } from '../stores/theme'
 import { Bean3D, BEAN_HEIGHT, type BeanState } from './Bean3D'
 import { SceneContext, useScene, type SceneEnv } from './context'
@@ -19,7 +19,7 @@ import { Box } from './parts'
 export interface SceneAvatar {
   id: string
   name: string
-  colors: AvatarColors
+  avatar: Avatar
   state: BeanState
   /** Timer text for the label, or null for no timer. */
   clock: string | null
@@ -354,7 +354,7 @@ export default function IsoRoom({
     () => (zoom > 0 ? { c: colors, outline: 1.7 / zoom, lampOn, night, shadows, reducedMotion } : null),
     [colors, zoom, lampOn, night, shadows, reducedMotion],
   )
-  const door: [number, number, number] = [size / 2 + 0.6, 0, size / 2 - 1.5]
+  const door: [number, number, number] = [size / 2 - 0.4, 0, size / 2 - 0.4]
 
   const select = (id: string) => {
     setSelected(id)
@@ -426,7 +426,8 @@ export default function IsoRoom({
                 )}
                 <Bean3D
                   id={a.id}
-                  colors={a.colors}
+                  avatar={a.avatar}
+                  seat={seat.kind === 'chair' ? 'chair' : 'floor'}
                   state={a.state}
                   position={pos}
                   facing={seat.facing * QUARTER}

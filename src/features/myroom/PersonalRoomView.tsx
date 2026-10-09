@@ -27,7 +27,7 @@ export function PersonalRoomView({ className }: { className: string }) {
         {
           id: profile.id,
           name: profile.display_name,
-          colors: profile.avatar.colors,
+          avatar: profile.avatar,
           state,
           clock: null,
           isMe: true,
@@ -39,7 +39,7 @@ export function PersonalRoomView({ className }: { className: string }) {
       label={copy.myRoom.sceneLabel(profile.display_name)}
       fallback={
         <RoomScene
-          beans={[profile.avatar.colors]}
+          beans={[profile.avatar]}
           night={daypart === 'night'}
           lampOn={focusing || daypart === 'night'}
           label={copy.myRoom.title}

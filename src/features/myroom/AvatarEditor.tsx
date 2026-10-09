@@ -31,7 +31,7 @@ export function AvatarEditor({ onClose }: { onClose: () => void }) {
   return (
     <Dialog title={copy.myRoom.beanTitle} onClose={onClose} labelledBy="bean-title">
       <div className="mt-4 flex justify-center">
-        <Bean colors={avatar.colors} size={96} title={profile.display_name} />
+        <Bean avatar={avatar} size={96} title={profile.display_name} />
       </div>
       <AvatarSwatches avatar={avatar} onChange={setAvatar} />
       <ErrorText code={error} />

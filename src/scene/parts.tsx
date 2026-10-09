@@ -1,6 +1,12 @@
 // Low-poly building blocks: flat-shaded solids with an ink outline (an inverted hull grown by a fixed
 // world thickness), so the scene matches the UI's 2px borders (studyroom-look §2).
-import { BoxGeometry, CylinderGeometry, IcosahedronGeometry, type BufferGeometry } from 'three'
+import {
+  BoxGeometry,
+  CapsuleGeometry,
+  CylinderGeometry,
+  IcosahedronGeometry,
+  type BufferGeometry,
+} from 'three'
 import { cachedGeometry, hull, solid } from './cache'
 import { useScene } from './context'
 
@@ -66,4 +72,18 @@ export function Ball({ radius, detail = 1, ...props }: PartProps & { radius: num
   const geometry = cachedGeometry(`ico${radius},${detail}`, () => new IcosahedronGeometry(radius, detail))
   const s = (radius + t) / radius
   return <Part geometry={geometry} grow={[s, s, s]} {...props} />
+}
+
+/** Capsule along y: total height = length + 2 × radius, centred on its position. */
+export function Capsule({ radius, length, ...props }: PartProps & { radius: number; length: number }) {
+  const { outline: t } = useScene()
+  const geometry = cachedGeometry(`cap${radius},${length}`, () => new CapsuleGeometry(radius, length, 3, 8))
+  const total = length + 2 * radius
+  return (
+    <Part
+      geometry={geometry}
+      grow={[(radius + t) / radius, (total + 2 * t) / total, (radius + t) / radius]}
+      {...props}
+    />
+  )
 }

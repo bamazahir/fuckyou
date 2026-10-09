@@ -38,7 +38,7 @@ export function HomePage() {
 
       <section className="card card-raised overflow-hidden">
         <RoomScene
-          beans={[profile.avatar.colors]}
+          beans={[profile.avatar]}
           night={daypart === 'night'}
           lampOn={studying || daypart === 'night'}
           label={t.soloTitle}

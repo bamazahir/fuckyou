@@ -34,7 +34,7 @@ export function ProfilePage() {
   return (
     <div className="space-y-6">
       <header className="flex items-center gap-4">
-        <Bean colors={profile.avatar.colors} size={64} title={profile.display_name} />
+        <Bean avatar={profile.avatar} size={64} title={profile.display_name} />
         <div>
           <h1 className="font-display text-3xl font-bold">{profile.display_name}</h1>
           <p className="text-on-bg-muted">@{profile.handle}</p>

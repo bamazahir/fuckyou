@@ -8,8 +8,12 @@ export interface AvatarColors {
   top: string
 }
 
+export type HairStyle = 'short' | 'long' | 'curly' | 'bun'
+
 export interface Avatar {
   colors: AvatarColors
+  /** Missing on avatars made before hairstyles existed: treat as 'short'. */
+  hair?: HairStyle
   accessories?: string[]
 }
 

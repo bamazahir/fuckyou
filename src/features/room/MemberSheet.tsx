@@ -81,7 +81,7 @@ export function MemberSheet({
   return (
     <Dialog title={member.display_name} onClose={onClose} labelledBy="member-title">
       <div className="mt-2 flex items-center gap-4">
-        <Bean colors={member.avatar.colors} size={64} title={member.display_name} />
+        <Bean avatar={member.avatar} size={64} title={member.display_name} />
         <div>
           <p className="text-muted">@{member.handle}</p>
           {member.role !== 'member' && (

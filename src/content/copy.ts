@@ -87,6 +87,8 @@ export const copy = {
       hair: 'Hair',
       body: 'Body',
       top: 'Top',
+      hairStyle: 'Hairstyle',
+      styles: { short: 'Short', long: 'Long', curly: 'Curly', bun: 'Bun' },
       randomize: 'Surprise me',
       finish: 'Finish',
     },

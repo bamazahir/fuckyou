@@ -51,7 +51,7 @@ export function Leaderboard({
         {(rows ?? []).map((r) => (
           <li key={r.user_id} className="flex items-center gap-3 py-2">
             <span className="font-display w-6 text-right text-lg font-bold tabular-nums">{r.rank}</span>
-            <Bean colors={r.avatar.colors} size={28} title={r.display_name} />
+            <Bean avatar={r.avatar} size={28} title={r.display_name} />
             <span className="flex-1 truncate font-bold">
               {r.display_name}
               {r.user_id === meId && (

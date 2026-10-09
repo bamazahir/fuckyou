@@ -1,5 +1,5 @@
 import { useId } from 'react'
-import type { AvatarColors } from '../lib/db'
+import type { Avatar } from '../lib/db'
 import { BeanShape } from './Bean'
 
 /**
@@ -12,7 +12,7 @@ export function RoomScene({
   lampOn = beans.length > 0,
   label,
 }: {
-  beans: AvatarColors[]
+  beans: Avatar[]
   night: boolean
   lampOn?: boolean
   label: string
@@ -108,8 +108,8 @@ export function RoomScene({
       <path d="M272 112 v12" stroke="var(--line)" strokeWidth="3" />
 
       {/* beans sit behind the desk */}
-      {seats.map((colors, i) => (
-        <BeanShape key={i} colors={colors} transform={`translate(${(seatX[i] ?? 150) - 24} 62) scale(0.4)`} />
+      {seats.map((avatar, i) => (
+        <BeanShape key={i} avatar={avatar} transform={`translate(${(seatX[i] ?? 150) - 24} 76) scale(0.4)`} />
       ))}
       {seats.length === 0 && (
         <path

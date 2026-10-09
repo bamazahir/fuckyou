@@ -14,7 +14,7 @@ export function AvatarStack({
     <div className="flex items-end" aria-label={people.map((p) => p.display_name).join(', ')}>
       {people.slice(0, 4).map((p, i) => (
         <span key={`${p.display_name}-${i}`} className={i > 0 ? '-ml-3' : ''}>
-          <Bean colors={p.avatar.colors} size={size} title={p.display_name} />
+          <Bean avatar={p.avatar} size={size} title={p.display_name} />
         </span>
       ))}
     </div>

@@ -1,13 +1,32 @@
-import { AVATAR_SLOTS } from '../content/avatar'
+import { AVATAR_SLOTS, HAIR_STYLES, hairOf } from '../content/avatar'
 import { copy } from '../content/copy'
 import type { Avatar } from '../lib/db'
 
 const t = copy.onboarding.bean
 
-/** Curated color pickers for the four bean slots (studyroom-look §2). */
+/** Hairstyle chips and curated color pickers for the four slots (studyroom-look §2). */
 export function AvatarSwatches({ avatar, onChange }: { avatar: Avatar; onChange: (a: Avatar) => void }) {
+  const style = hairOf(avatar)
   return (
     <>
+      <fieldset className="mt-4">
+        <legend className="text-sm font-bold">{t.hairStyle}</legend>
+        <div className="mt-2 grid grid-cols-4 gap-2">
+          {HAIR_STYLES.map((s) => (
+            <label key={s} className={`chip ${style === s ? 'chip-on' : ''}`}>
+              <input
+                type="radio"
+                name="hair-style"
+                value={s}
+                checked={style === s}
+                onChange={() => onChange({ ...avatar, hair: s })}
+                className="sr-only"
+              />
+              {t.styles[s]}
+            </label>
+          ))}
+        </div>
+      </fieldset>
       {AVATAR_SLOTS.map((slot) => (
         <fieldset key={slot.key} className="mt-4">
           <legend className="text-sm font-bold">{t[slot.key]}</legend>

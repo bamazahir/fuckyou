@@ -53,7 +53,7 @@ export function InvitePage() {
     <Screen>
       <div className="card card-raised overflow-hidden">
         <RoomScene
-          beans={(preview?.studying ?? []).map((p) => p.avatar.colors)}
+          beans={(preview?.studying ?? []).map((p) => p.avatar)}
           night={daypart === 'night'}
           label={preview?.name ?? ''}
         />

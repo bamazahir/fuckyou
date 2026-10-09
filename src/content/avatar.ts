@@ -1,4 +1,4 @@
-import type { Avatar, AvatarColors } from '../lib/db'
+import type { Avatar, AvatarColors, HairStyle } from '../lib/db'
 
 // Curated swatches only (studyroom-look §2): skin ×8, hair ×10, body/top ×16.
 export const SKIN = [
@@ -49,10 +49,19 @@ export const AVATAR_SLOTS: { key: keyof AvatarColors; swatches: readonly string[
   { key: 'top', swatches: CLOTH },
 ]
 
+export const HAIR_STYLES: readonly HairStyle[] = ['short', 'long', 'curly', 'bun']
+
+export const hairOf = (avatar: Avatar): HairStyle =>
+  avatar.hair && HAIR_STYLES.includes(avatar.hair) ? avatar.hair : 'short'
+
+/** Character art constants (studyroom-look §1 exception): the same in every theme. */
+export const FACE = { eye: '#1E1A17', shine: '#FFFFFF', blush: '#F29A8E', shoe: '#3A302A' } as const
+
 const pick = <T>(xs: readonly T[], r: number): T => xs[Math.floor(r * xs.length) % xs.length] as T
 
 export function randomAvatar(rand: () => number = Math.random): Avatar {
   return {
+    hair: pick(HAIR_STYLES, rand()),
     colors: {
       skin: pick(SKIN, rand()),
       hair: pick(HAIR, rand()),

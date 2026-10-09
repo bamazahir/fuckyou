@@ -212,7 +212,7 @@ export function OnboardingPage() {
           <div>
             <StepHeader n={3} title={t.bean.title} />
             <div className="mt-4 flex justify-center">
-              <Bean colors={avatar.colors} size={110} title={displayName} />
+              <Bean avatar={avatar} size={110} title={displayName} />
             </div>
             <AvatarSwatches avatar={avatar} onChange={setAvatar} />
             <ErrorText code={error} />

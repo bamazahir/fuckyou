@@ -38,7 +38,7 @@ function toSceneAvatar(m: LiveMember, meId: string, nowMs: number, bubble?: stri
   return {
     id: m.user_id,
     name: m.display_name,
-    colors: m.avatar.colors,
+    avatar: m.avatar,
     state: focusing ? 'focus' : 'break',
     clock,
     bubble,
@@ -185,7 +185,7 @@ export function SharedRoom({ room }: { room: MyRoom }) {
                 fallback={
                   <div className="space-y-4 p-4">
                     <RoomScene
-                      beans={liveRows.filter((r) => r.state === 'focus').map((r) => r.avatar.colors)}
+                      beans={liveRows.filter((r) => r.state === 'focus').map((r) => r.avatar)}
                       night={daypart === 'night'}
                       label={room.name}
                     />

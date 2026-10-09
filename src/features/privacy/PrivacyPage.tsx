@@ -14,7 +14,7 @@ const SECTIONS: { h: string; p: string[] }[] = [
     h: 'What we collect',
     p: [
       'Your email address, only to sign you in. Nobody else sees it.',
-      'Your handle, display name and cartoon avatar colors.',
+      'Your handle, display name and cartoon avatar (colors and hairstyle).',
       'Your country and an age range (not your birthday), so we know whether a parent needs to agree first.',
       'Your study sessions: when they started, how long they were, what you wrote as your status line, and any note you add afterwards.',
       'The rooms you are in, people you block, and reports you send.',
