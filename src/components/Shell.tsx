@@ -1,4 +1,4 @@
-import type { ComponentType, SVGProps } from 'react'
+import { Suspense, type ComponentType, type SVGProps } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { APP_NAME } from '../config'
 import { copy } from '../content/copy'
@@ -48,7 +48,15 @@ export function Shell() {
         </ul>
       </nav>
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 pt-[max(1.5rem,env(safe-area-inset-top))] pb-28 md:px-10 md:py-10">
-        <Outlet />
+        <Suspense
+          fallback={
+            <p role="status" className="text-on-bg-muted">
+              {copy.common.loading}
+            </p>
+          }
+        >
+          <Outlet />
+        </Suspense>
       </main>
     </div>
   )

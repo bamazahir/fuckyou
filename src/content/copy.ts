@@ -554,6 +554,21 @@ export const copy = {
     ],
   },
   notFound: { title: 'This room does not exist', back: 'Back home' },
+  offline: {
+    banner: 'You’re offline. A running timer keeps going; everything else catches up when you’re back.',
+    retry: 'Try again',
+    failed: 'Couldn’t load this. Check your connection and try again.',
+  },
+  routeError: {
+    title: 'Something went wrong',
+    body: 'This screen hit a snag. Reloading usually fixes it.',
+    updateTitle: 'Studyroom was updated',
+    updateBody: 'Reload to get the new version.',
+    offlineTitle: 'You’re offline',
+    offlineBody: 'This screen needs a connection the first time. Try again when you’re back online.',
+    reload: 'Reload',
+    home: 'Go home',
+  },
 } as const
 
 /** Message for an RPC error code; unknown codes get the generic message. */

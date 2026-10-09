@@ -1,22 +1,18 @@
-import { useEffect, type ReactNode } from 'react'
-import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom'
+import { lazy, Suspense, useEffect, type ReactNode } from 'react'
+import { createBrowserRouter, Navigate, Outlet, RouterProvider } from 'react-router-dom'
+import { OfflineBanner } from './components/OfflineBanner'
+import { RouteError } from './features/RouteError'
 import { Shell } from './components/Shell'
 import { SignInPage } from './features/auth/SignInPage'
 import { BlockedPage, LoadErrorPage, LoadingPage, UnconfiguredPage } from './features/auth/StatusPages'
 import { WaitingPage } from './features/auth/WaitingPage'
-import { AdminPage } from './features/admin/AdminPage'
-import { ConsentPage } from './features/consent/ConsentPage'
 import { InvitePage } from './features/invite/InvitePage'
-import { PrivacyPage } from './features/privacy/PrivacyPage'
 import { Toasts } from './components/Toasts'
 import { PushSheet } from './features/push/PushSheet'
 import { usePush } from './stores/push'
 import { pendingInvite, useRooms } from './stores/rooms'
 import { HomePage } from './features/home/HomePage'
-import { DecorateMyRoomPage, DecorateRoomPage } from './features/decor/DecoratePage'
-import { VisitPage } from './features/decor/VisitPage'
 import { MyRoomPage } from './features/myroom/MyRoomPage'
-import { ShopPage } from './features/shop/ShopPage'
 import { NotFoundPage } from './features/NotFoundPage'
 import { OnboardingPage } from './features/onboarding/OnboardingPage'
 import { ProfilePage } from './features/profile/ProfilePage'
@@ -26,6 +22,17 @@ import { supabase } from './lib/supabase'
 import { useAuth, type AuthStatus } from './stores/auth'
 import { useTimer } from './stores/timer'
 import { useWallet } from './stores/wallet'
+
+// Screens most visits never open load on demand (smaller first load on school Wi-Fi).
+const named = <T extends string>(load: () => Promise<Record<T, React.ComponentType>>, name: T) =>
+  lazy(() => load().then((m) => ({ default: m[name] })))
+const AdminPage = named(() => import('./features/admin/AdminPage'), 'AdminPage')
+const ConsentPage = named(() => import('./features/consent/ConsentPage'), 'ConsentPage')
+const PrivacyPage = named(() => import('./features/privacy/PrivacyPage'), 'PrivacyPage')
+const DecorateMyRoomPage = named(() => import('./features/decor/DecoratePage'), 'DecorateMyRoomPage')
+const DecorateRoomPage = named(() => import('./features/decor/DecoratePage'), 'DecorateRoomPage')
+const VisitPage = named(() => import('./features/decor/VisitPage'), 'VisitPage')
+const ShopPage = named(() => import('./features/shop/ShopPage'), 'ShopPage')
 
 /** Routes each auth state to the one screen it may see (SPEC §5.1, §8.2 consent gate). */
 function Gate({ allow, children }: { allow: AuthStatus; children: ReactNode }) {
@@ -48,52 +55,66 @@ function Gate({ allow, children }: { allow: AuthStatus; children: ReactNode }) {
 
 const router = createBrowserRouter([
   {
-    path: '/signin',
+    // A crash anywhere shows a friendly page with Reload, never a blank screen.
+    errorElement: <RouteError />,
     element: (
-      <Gate allow="signed_out">
-        <SignInPage />
-      </Gate>
-    ),
-  },
-  {
-    path: '/onboarding',
-    element: (
-      <Gate allow="needs_profile">
-        <OnboardingPage />
-      </Gate>
-    ),
-  },
-  {
-    path: '/waiting',
-    element: (
-      <Gate allow="pending">
-        <WaitingPage />
-      </Gate>
-    ),
-  },
-  { path: '/blocked', element: <BlockedPage /> },
-  // Public pages: no sign-in needed (invite preview, parent consent, privacy).
-  { path: '/j/:code', element: <InvitePage /> },
-  { path: '/consent/:token', element: <ConsentPage /> },
-  { path: '/privacy', element: <PrivacyPage /> },
-  {
-    element: (
-      <Gate allow="ready">
-        <Shell />
-      </Gate>
+      <>
+        <OfflineBanner />
+        <Suspense fallback={<LoadingPage />}>
+          <Outlet />
+        </Suspense>
+      </>
     ),
     children: [
-      { path: '/', element: <HomePage /> },
-      { path: '/me', element: <MyRoomPage /> },
-      { path: '/me/decorate', element: <DecorateMyRoomPage /> },
-      { path: '/shop', element: <ShopPage /> },
-      { path: '/room/:roomId/shop', element: <ShopPage /> },
-      { path: '/room/:roomId/decorate', element: <DecorateRoomPage /> },
-      { path: '/visit/:userId', element: <VisitPage /> },
-      { path: '/profile', element: <ProfilePage /> },
-      { path: '/room/:roomId', element: <RoomPage /> },
-      { path: '/admin', element: <AdminPage /> },
-      { path: '*', element: <NotFoundPage /> },
+      {
+        path: '/signin',
+        element: (
+          <Gate allow="signed_out">
+            <SignInPage />
+          </Gate>
+        ),
+      },
+      {
+        path: '/onboarding',
+        element: (
+          <Gate allow="needs_profile">
+            <OnboardingPage />
+          </Gate>
+        ),
+      },
+      {
+        path: '/waiting',
+        element: (
+          <Gate allow="pending">
+            <WaitingPage />
+          </Gate>
+        ),
+      },
+      { path: '/blocked', element: <BlockedPage /> },
+      // Public pages: no sign-in needed (invite preview, parent consent, privacy).
+      { path: '/j/:code', element: <InvitePage /> },
+      { path: '/consent/:token', element: <ConsentPage /> },
+      { path: '/privacy', element: <PrivacyPage /> },
+      {
+        element: (
+          <Gate allow="ready">
+            <Shell />
+          </Gate>
+        ),
+        children: [
+          { path: '/', element: <HomePage /> },
+          { path: '/me', element: <MyRoomPage /> },
+          { path: '/me/decorate', element: <DecorateMyRoomPage /> },
+          { path: '/shop', element: <ShopPage /> },
+          { path: '/room/:roomId/shop', element: <ShopPage /> },
+          { path: '/room/:roomId/decorate', element: <DecorateRoomPage /> },
+          { path: '/visit/:userId', element: <VisitPage /> },
+          { path: '/profile', element: <ProfilePage /> },
+          { path: '/room/:roomId', element: <RoomPage /> },
+          { path: '/admin', element: <AdminPage /> },
+          { path: '*', element: <NotFoundPage /> },
+        ],
+      },
     ],
   },
 ])

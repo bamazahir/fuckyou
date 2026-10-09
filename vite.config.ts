@@ -16,6 +16,8 @@ export default defineConfig({
       injectManifest: {
         // Fonts: precache latin subsets only; other scripts load on demand.
         globPatterns: ['**/*.{js,css,html,svg,png,webp}', '**/*-latin-*.woff2'],
+        // Launch screens and the social preview are fetched by iOS / link previews, not the app.
+        globIgnores: ['splash/**', 'og-image.png'],
       },
       manifest: {
         name: 'Studyroom',

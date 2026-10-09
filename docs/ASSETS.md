@@ -12,3 +12,4 @@ Every font, model, image and audio file shipped with the app. Add a row **before
 | Bean avatar (3D) | procedural, `src/scene/Bean3D.tsx` | Original | Project's own |
 | Radio: Rain, Café and Brown noise stations | generated in the browser, `src/core/noise.ts` (no audio files) | Original, synthesised in code (decision 0013) | Project's own |
 | Radio: Lofi station | none yet; tracks go in Supabase Storage and get a row here each before they're added to `src/content/stations.json` | — | Must be CC0 or explicit permission for in-app streaming |
+| iOS launch screens (12 sizes) and social preview image | `public/splash/*.png`, `public/og-image.png` via `scripts/assets/splash.mjs` | Original: the app icon + bundled OFL fonts | Project's own |
