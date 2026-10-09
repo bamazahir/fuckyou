@@ -357,7 +357,8 @@ export const copy = {
   },
   sync: {
     badge: 'Shared pomodoro',
-    focus: (left: string, n: number) => `Focus · ${left} left · ${n === 0 ? 'be the first' : `${n} focusing`}`,
+    focus: (left: string, n: number) =>
+      `Focus · ${left} left · ${n === 0 ? 'be the first' : `${n} focusing`}`,
     breakTogether: (left: string) => `Break together · ${left}`,
     joinNow: 'Join this focus',
     joinNext: (inTime: string) => `Join the next focus in ${inTime}`,
