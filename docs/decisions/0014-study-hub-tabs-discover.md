@@ -32,6 +32,16 @@ The council run the same day (see chat) advised launching before adding features
   - **Blocks:** anyone who blocked you, or whom you blocked, hides the room from you.
   - **Joining** goes through `join_room`, so the existing checks apply: rate limit, 50-member cap, 20-room cap, bans, consent.
   - **Unchanged:** room names already pass the profanity filter, and there's still no chat. Reports and owner removal work as before.
+  - **Safety review fixes** (migration `20261013100000_m8_discover_safety`):
+    - An invite code from a listed room only works for someone who fits the room: same age band, no blocks. A code passed on can't bring an adult in.
+    - Joining from Discover returns only the room's id and name.
+    - A listed room's invite preview shows no names or faces.
+    - Listing needs at least 3 members.
+    - Live "studying now" counts are hidden for rooms under 5 members, so nobody can poll them.
+    - Discover is rate-limited.
+    - The listing hint warns not to use a school's or anyone's real name.
+    - The 50-member cap is checked under a row lock.
+  - **Accepted:** a failed RPC rolls back its own rate-limit counter, because each call is one transaction. So guessing invite codes isn't throttled by the counter. Codes are 8 characters from a 32-character alphabet, about 10¹² combinations, so guessing stays impractical. Revisit if codes get shorter.
 - **Moving rooms:** `move_session` carries your running session to another room you can study in.
   - The whole session then counts in the new room, which keeps the accounting simple.
   - You can't move into a room running a shared pomodoro, because it has its own clock. You join its next focus instead.

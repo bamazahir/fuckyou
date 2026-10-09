@@ -12,7 +12,8 @@ interface Listed {
   id: string
   name: string
   member_count: number
-  studying_count: number
+  /** Hidden (null) for small rooms, so nobody can watch when a few friends are online. */
+  studying_count: number | null
   sync_pomodoro: boolean
 }
 
@@ -71,12 +72,17 @@ export function DiscoverList() {
                 {r.sync_pomodoro && <span className="pill mt-1">{copy.sync.badge}</span>}
               </div>
               <div className="flex flex-wrap items-center gap-2 text-sm">
-                <span
-                  className={`inline-block h-2.5 w-2.5 rounded-full border-2 border-line ${r.studying_count > 0 ? 'bg-good' : 'bg-surface-2'}`}
-                  aria-hidden="true"
-                />
-                <span className="font-bold">{copy.home.studyingNow(r.studying_count)}</span>
-                <span className="text-muted">· {copy.home.members(r.member_count)}</span>
+                {r.studying_count !== null && (
+                  <>
+                    <span
+                      className={`inline-block h-2.5 w-2.5 rounded-full border-2 border-line ${r.studying_count > 0 ? 'bg-good' : 'bg-surface-2'}`}
+                      aria-hidden="true"
+                    />
+                    <span className="font-bold">{copy.home.studyingNow(r.studying_count)}</span>
+                    <span className="text-muted">·</span>
+                  </>
+                )}
+                <span className="text-muted">{copy.home.members(r.member_count)}</span>
                 <button
                   type="button"
                   className="btn btn-primary ml-auto"

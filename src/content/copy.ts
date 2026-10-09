@@ -55,6 +55,9 @@ export const copy = {
     invalid_station: 'That station isn’t available.',
     sync_room_move: 'This room runs a shared pomodoro. End your timer here and join its next focus instead.',
     no_active_session: 'Your timer already ended.',
+    listed_age_group:
+      'This room is listed in Discover for a different age group, so this invite can’t be used. Ask the owner to unlist it first.',
+    too_few_to_list: 'A room needs at least 3 members before it can be listed in Discover.',
     mixed_ages: 'Everyone in the room needs to be in the same age group to list it in Discover.',
     invalid_style: 'That wall or floor isn’t available.',
     invalid_push_endpoint: 'This browser’s notification service isn’t supported.',
@@ -246,7 +249,7 @@ export const copy = {
     joinNamed: (name: string) => `Join ${name}`,
     listTitle: 'List in Discover',
     listHint:
-      'People your age can find this room by its name and join without a link. They won’t see who’s in it until they join.',
+      'People your age can find this room by its name and join without a link. They won’t see who’s in it until they join. Strangers will see the name, so don’t use your school’s or anyone’s real name. Needs at least 3 members.',
     mixedAges: 'Everyone in the room needs to be in the same age group to list it.',
   },
   invite: {

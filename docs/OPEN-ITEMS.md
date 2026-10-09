@@ -5,7 +5,7 @@ shared doc "Studyroom — open items" (https://claude.ai/code/artifact/37ce5a78-
 Agents: keep both in step, add new items when a milestone needs a device or a person, and never tick one yourself.
 
 ## Setup to do once (from the repo folder)
-- [ ] `pnpm dlx supabase db push` (enable pg_cron + pg_net first); migrations up to the latest in `supabase/migrations/` (currently `20261013000000_m8_hub`). **This is why Shop and Decorate don't open yet: the app now says "needs a database update" until it's done.**
+- [ ] `pnpm dlx supabase db push` (enable pg_cron + pg_net first); migrations up to the latest in `supabase/migrations/` (currently `20261013100000_m8_discover_safety`). **This is why Shop and Decorate don't open yet: the app now says "needs a database update" until it's done.**
 - [ ] Make yourself admin: `update public.profiles set is_admin = true where handle = '<you>';`
 - [ ] `node scripts/push/vapid.mjs` → VAPID keys; `openssl rand -hex 32` → PUSH_SECRET
 - [ ] `supabase secrets set VAPID_PUBLIC_KEY VAPID_PRIVATE_KEY VAPID_SUBJECT=mailto:… PUSH_SECRET APP_URL`

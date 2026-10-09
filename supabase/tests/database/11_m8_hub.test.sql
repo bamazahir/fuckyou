@@ -1,11 +1,14 @@
 begin;
-select plan(20);
+select plan(24);
 
 -- fixtures: Ada (16-17, owner), Ben (16-17), Cy (14), Dee (16-17, blocked by Ada)
 select tests.create_user('00000000-0000-0000-0000-0000000000a1', 'ada@example.com');
 select tests.create_user('00000000-0000-0000-0000-0000000000a2', 'ben@example.com');
 select tests.create_user('00000000-0000-0000-0000-0000000000a3', 'cy@example.com');
 select tests.create_user('00000000-0000-0000-0000-0000000000a4', 'dee@example.com');
+select tests.create_user('00000000-0000-0000-0000-0000000000a5', 'eve@example.com');
+select tests.create_user('00000000-0000-0000-0000-0000000000a6', 'fay@example.com');
+select tests.create_user('00000000-0000-0000-0000-0000000000a7', 'gus@example.com');
 select tests.act_as('00000000-0000-0000-0000-0000000000a1');
 select public.complete_profile('ada', 'Ada', 'GB', '16-17', tests.avatar(), 'Europe/London');
 select tests.act_as('00000000-0000-0000-0000-0000000000a2');
@@ -14,6 +17,12 @@ select tests.act_as('00000000-0000-0000-0000-0000000000a3');
 select public.complete_profile('cyy', 'Cy', 'GB', '14', tests.avatar(), 'Europe/London');
 select tests.act_as('00000000-0000-0000-0000-0000000000a4');
 select public.complete_profile('dee', 'Dee', 'GB', '16-17', tests.avatar(), 'Europe/London');
+select tests.act_as('00000000-0000-0000-0000-0000000000a5');
+select public.complete_profile('eve', 'Eve', 'GB', '16-17', tests.avatar(), 'Europe/London');
+select tests.act_as('00000000-0000-0000-0000-0000000000a6');
+select public.complete_profile('fay', 'Fay', 'GB', '16-17', tests.avatar(), 'Europe/London');
+select tests.act_as('00000000-0000-0000-0000-0000000000a7');
+select public.complete_profile('gus', 'Gus', 'GB', '18+', tests.avatar(), 'Europe/London');
 
 -- ---------- fuller rooms ----------
 select tests.act_as('00000000-0000-0000-0000-0000000000a1');
@@ -44,6 +53,13 @@ select throws_ok($$ select public.set_room_listed((select id from t_room), true)
   'only the owner can list a room');
 select tests.act_as('00000000-0000-0000-0000-0000000000a1');
 select public.block_user('00000000-0000-0000-0000-0000000000a4');
+select throws_ok($$ select public.set_room_listed((select id from t_room), true) $$, 'too_few_to_list',
+  'a room needs 3 members to be listed');
+select tests.act_as('00000000-0000-0000-0000-0000000000a5');
+select public.join_room((select invite_code from t_room));
+select tests.act_as('00000000-0000-0000-0000-0000000000a6');
+select public.join_room((select invite_code from t_room));
+select tests.act_as('00000000-0000-0000-0000-0000000000a1');
 select public.set_room_listed((select id from t_room), true);
 select tests.act_as('00000000-0000-0000-0000-0000000000a2');
 select is((select name from public.discover_rooms() limit 1), 'Hub crew', 'listed rooms show up for people the same age');
@@ -53,8 +69,17 @@ select throws_ok($$ select public.join_listed_room((select id from t_room)) $$, 
   'and they can''t join it by id either');
 select tests.act_as('00000000-0000-0000-0000-0000000000a4');
 select is((select count(*)::int from public.discover_rooms()), 0, 'nor for someone a member has blocked');
+select tests.act_as('00000000-0000-0000-0000-0000000000a7');
+select throws_ok($$ select public.join_room((select invite_code from t_room)) $$, 'listed_age_group',
+  'a passed-on invite code doesn''t let an adult into a listed teen room');
+select is(public.preview_room((select invite_code from t_room)) -> 'studying', '[]'::jsonb,
+  'a listed room''s invite preview shows no names or faces');
 select tests.act_as('00000000-0000-0000-0000-0000000000a2');
-select lives_ok($$ select public.join_listed_room((select id from t_room)) $$, 'joining a listed room works');
+select is((select studying_count from public.discover_rooms() limit 1), null,
+  'small rooms don''t show when people are studying');
+select tests.act_as('00000000-0000-0000-0000-0000000000a2');
+select is(public.join_listed_room((select id from t_room)) - 'id', '{"name":"Hub crew"}'::jsonb,
+  'joining a listed room works and gives back only its name and id');
 select is((select count(*)::int from public.discover_rooms()), 0, 'rooms you''re in drop out of Discover');
 
 -- ---------- moving rooms ----------
