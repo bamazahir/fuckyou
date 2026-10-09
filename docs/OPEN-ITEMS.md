@@ -42,5 +42,9 @@ reaction/nudge counts (accepted, decision 0010) · 13–15 consent outside the s
 - [ ] M5: after `db push`, check an existing account and room got their starter things (Shop shows "You have 1" on the desk)
 - [ ] M5 device check: decorate on a phone (tap → tap again places it; Save) and on a laptop
 - [ ] M5 device check: shop thumbnails appear on a mid-range Android without a long freeze
-- [ ] M6: lofi station needs CC0 / explicitly licensed tracks chosen and uploaded by the builder
+- [ ] M6: lofi station needs CC0 / explicitly licensed tracks chosen and uploaded by the builder (public Storage bucket, Opus/AAC ~96 kbps; a row each in `docs/ASSETS.md`; then ask an agent to add them to `stations.json`)
+- [ ] M6 device check: listen to Rain, Café and Brown noise on a phone and a laptop; say if any sounds harsh or loops audibly
+- [ ] M6 device check: owner switches the room station; a second device follows within a few seconds
+- [ ] M6 device check: phone lock screen shows the station and play/pause works (Media Session); on iPhone the silent switch mutes it (expected)
+- [ ] M6 accept (after lofi tracks exist): two devices in one room play the same track within 1 s
 - [ ] M7: Lighthouse run on the deployed URL

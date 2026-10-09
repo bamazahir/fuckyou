@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Navigate, useParams } from 'react-router-dom'
 import { copy } from '../../content/copy'
 import { useAuth } from '../../stores/auth'
@@ -9,10 +9,18 @@ import { NotFoundPage } from '../NotFoundPage'
 import { NoteDialog } from './NoteDialog'
 import { SharedRoom } from './SharedRoom'
 import { TimerDock } from './TimerDock'
+import { STATIONS } from '../../content/stations'
+import { resolveStation } from '../../core/radio'
+import { personalStation, savePersonalStation } from '../../stores/radio'
+import { RadioPanel } from '../radio/RadioPanel'
+import { useRoomRadio } from '../radio/useRoomRadio'
 
 function SoloRoom({ roomId }: { roomId: string }) {
   const profile = useAuth((s) => s.profile)
   const { phase, afterEnded } = useTimer()
+  const [stationId, setStationId] = useState(personalStation)
+  const station = resolveStation(STATIONS, stationId)
+  useRoomRadio(roomId, station)
   if (!profile) return null
   return (
     <div className="space-y-5">
@@ -24,7 +32,24 @@ function SoloRoom({ roomId }: { roomId: string }) {
         <div className="card card-raised self-start overflow-hidden">
           <PersonalRoomView className="h-[min(48svh,440px)] min-h-64 lg:h-[520px]" />
         </div>
-        <TimerDock roomId={roomId} />
+        <div className="space-y-5">
+          <TimerDock roomId={roomId} radio={station} />
+          <section aria-labelledby="radio-title" className="card p-4">
+            <h2 id="radio-title" className="font-display mb-3 text-lg font-bold">
+              {copy.radio.title}
+            </h2>
+            <RadioPanel
+              roomId={roomId}
+              station={station}
+              canPick
+              personal
+              onPick={(id) => {
+                setStationId(id)
+                savePersonalStation(id)
+              }}
+            />
+          </section>
+        </div>
       </div>
       {phase.name === 'ended' && (
         <NoteDialog

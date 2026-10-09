@@ -1,3 +1,5 @@
+import type { Station } from '../../core/radio'
+import { RadioPill } from '../radio/RadioPanel'
 import { useEffect, useRef, useState } from 'react'
 import { ErrorText } from '../../components/Screen'
 import { useNow } from '../../components/useNow'
@@ -223,8 +225,11 @@ export function TimerDock({
   roomId,
   sync = null,
   together = 0,
+  radio,
 }: {
   roomId: string
+  /** The room's station, for the radio pill. */
+  radio?: Station
   /** Set in rooms that run a shared pomodoro. */
   sync?: SyncSettings | null
   /** How many are focusing in the room right now (for the shared-cycle line). */
@@ -246,6 +251,11 @@ export function TimerDock({
 
   return (
     <section aria-label="Timer" className="card card-raised p-5 md:p-6">
+      {radio && radio.kind !== 'silence' && (
+        <div className="-mt-1 mb-3 flex justify-end">
+          <RadioPill roomId={roomId} station={radio} />
+        </div>
+      )}
       {phase.name === 'running' && <Running session={phase.session} together={sync !== null} />}
       {sync && phase.name !== 'running' && <SyncDock roomId={roomId} sync={sync} together={together} />}
       {!sync && phase.name === 'break' && (

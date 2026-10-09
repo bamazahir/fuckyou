@@ -1,0 +1,10 @@
+{
+  "epoch": "2026-01-01T00:00:00Z",
+  "stations": [
+    { "id": "rain", "name": "Rain", "emoji": "🌧️", "kind": "generated", "generator": "rain" },
+    { "id": "cafe", "name": "Café", "emoji": "☕", "kind": "generated", "generator": "cafe" },
+    { "id": "brown", "name": "Brown noise", "emoji": "🌊", "kind": "generated", "generator": "brown" },
+    { "id": "lofi", "name": "Lofi", "emoji": "🎧", "kind": "tracks", "tracks": [] },
+    { "id": "silence", "name": "Silence", "emoji": "🤫", "kind": "silence" }
+  ]
+}

@@ -311,6 +311,7 @@ export async function mockSupabase(page: Page, initial: Partial<MockState> = {})
           state.roomInfo = { ...state.roomInfo, notify_active: body.p_on }
           return route.fulfill({ status: 204 })
         case 'set_room':
+          if (body.p_station_id) state.roomInfo = { ...state.roomInfo, station_id: body.p_station_id }
           return json(route, { id: body.p_room_id })
         case 'save_push_subscription':
         case 'delete_push_subscription':

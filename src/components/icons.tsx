@@ -65,3 +65,32 @@ export function BagIcon(props: SVGProps<SVGSVGElement>) {
     </Icon>
   )
 }
+
+export function PlayIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <path d="M7 4.5v15l12-7.5z" fill="currentColor" />
+    </Icon>
+  )
+}
+
+export function PauseIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <path d="M8 5v14M16 5v14" strokeWidth={3} />
+    </Icon>
+  )
+}
+
+export function SpeakerIcon({ muted = false, ...props }: SVGProps<SVGSVGElement> & { muted?: boolean }) {
+  return (
+    <Icon {...props}>
+      <path d="M4 9.5h3.5L12 5v14l-4.5-4.5H4z" />
+      {muted ? (
+        <path d="m16 9.5 5 5M21 9.5l-5 5" />
+      ) : (
+        <path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11" />
+      )}
+    </Icon>
+  )
+}

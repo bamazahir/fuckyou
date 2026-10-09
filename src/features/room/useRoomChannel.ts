@@ -97,6 +97,7 @@ export function useRoomChannel(roomId: string) {
       .on('broadcast', { event: 'joined' }, refresh)
       .on('broadcast', { event: 'sync' }, () => setSyncKey((k) => k + 1))
       .on('broadcast', { event: 'layout' }, () => setSyncKey((k) => k + 1))
+      .on('broadcast', { event: 'station' }, () => setSyncKey((k) => k + 1))
       .on('broadcast', { event: 'removed' }, ({ payload }) => {
         // Members can broadcast too, so check with the server before believing it (audit #7).
         if ((payload as { user_id?: string }).user_id === me.id) {

@@ -26,6 +26,10 @@ import { NoteDialog } from './NoteDialog'
 import { RoomSettings } from './RoomSettings'
 import { TimerDock } from './TimerDock'
 import { DonateDialog } from './DonateDialog'
+import { STATIONS } from '../../content/stations'
+import { resolveStation } from '../../core/radio'
+import { RadioPanel } from '../radio/RadioPanel'
+import { useRoomRadio } from '../radio/useRoomRadio'
 import { RoomView } from './RoomView'
 import { useRoomInfo } from './useRoomInfo'
 import { REACTIONS, useRoomChannel } from './useRoomChannel'
@@ -72,7 +76,12 @@ export function SharedRoom({ room }: { room: MyRoom }) {
   const [notifyOn, setNotifyOn] = useState<boolean | null>(null)
   const now = useNow(true)
   const sharedPhase = sync ? syncPhase(sync, now) : null
-  const [tab, setTab] = useState<'leaderboard' | 'members'>('leaderboard')
+  const [tab, setTab] = useState<'leaderboard' | 'radio' | 'members'>('leaderboard')
+  // A pick shows straight away, until room_info (refetched on the 'station' broadcast) catches up.
+  const [picked, setPicked] = useState<{ id: string; over: string | null } | null>(null)
+  const roomStation = info?.stationId ?? null
+  const station = resolveStation(STATIONS, picked && picked.over === roomStation ? picked.id : roomStation)
+  useRoomRadio(room.id, station)
   const [members, setMembers] = useState<RoomMember[] | null>(null)
   const [openMember, setOpenMember] = useState<RoomMember | null>(null)
   const [sheet, setSheet] = useState<'menu' | 'settings' | 'leave' | 'donate' | null>(null)
@@ -132,6 +141,15 @@ export function SharedRoom({ room }: { room: MyRoom }) {
         ? t.nightOwl(shortDuration(banner.seconds))
         : t.alone(shortDuration(banner.seconds))
     : null
+
+  async function pickStation(id: string) {
+    setPicked({ id, over: roomStation })
+    const { error: err } = await supabase.rpc('set_room', { p_room_id: room.id, p_station_id: id })
+    if (err) {
+      setPicked(null)
+      setError(rpcErrorCode(err))
+    } else refetchInfo()
+  }
 
   async function copyInvite() {
     try {
@@ -258,10 +276,10 @@ export function SharedRoom({ room }: { room: MyRoom }) {
         </section>
 
         <div className="space-y-5">
-          <TimerDock roomId={room.id} sync={sync} together={studyingIds.length} />
+          <TimerDock roomId={room.id} sync={sync} together={studyingIds.length} radio={station} />
           <section className="card p-4">
-            <div role="tablist" className="grid grid-cols-2 gap-2">
-              {(['leaderboard', 'members'] as const).map((k) => (
+            <div role="tablist" className="grid grid-cols-3 gap-2">
+              {(['leaderboard', 'radio', 'members'] as const).map((k) => (
                 <button
                   key={k}
                   type="button"
@@ -280,6 +298,13 @@ export function SharedRoom({ room }: { room: MyRoom }) {
                   roomId={room.id}
                   meId={me.id}
                   refreshKey={liveRows.length + studyingIds.length}
+                />
+              ) : tab === 'radio' ? (
+                <RadioPanel
+                  roomId={room.id}
+                  station={station}
+                  canPick={myRole === 'owner' || myRole === 'mod'}
+                  onPick={(id) => void pickStation(id)}
                 />
               ) : (
                 <MembersList members={members ?? []} live={byId} now={now} onOpen={(m) => setOpenMember(m)} />

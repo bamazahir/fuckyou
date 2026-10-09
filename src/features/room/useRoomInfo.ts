@@ -10,6 +10,8 @@ export interface RoomInfo {
   /** The saved layout ([] = the starter room) and the room bank. */
   layout: LayoutItem[]
   bank: number
+  /** The room's radio station id (SPEC §11). */
+  stationId: string | null
 }
 
 interface Row {
@@ -20,9 +22,10 @@ interface Row {
   notify_active: boolean
   layout?: LayoutItem[]
   bank_coins?: number
+  station_id?: string
 }
 
-/** room_info, refetched when the room's sync settings change (the 'sync' broadcast bumps `key`). */
+/** room_info, refetched when the room's settings change (the 'sync', 'layout' and 'station' broadcasts bump `key`). */
 export function useRoomInfo(roomId: string, key: number) {
   const [info, setInfo] = useState<RoomInfo | null>(null)
   const [reload, setReload] = useState(0)
@@ -38,6 +41,7 @@ export function useRoomInfo(roomId: string, key: number) {
         notifyActive: r.notify_active,
         layout: Array.isArray(r.layout) ? r.layout : [],
         bank: r.bank_coins ?? 0,
+        stationId: r.station_id ?? null,
       })
     })
     return () => {
