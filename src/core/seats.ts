@@ -1,0 +1,77 @@
+// Where avatars sit (SPEC §10 "Seats"). Pure.
+import { blockedCells, type ItemDef, type LayoutItem, type Rot } from './grid'
+
+export interface Seat {
+  /** Cell coordinates (the seat is at the cell's centre). */
+  x: number
+  z: number
+  /** Which way the sitter faces, in quarter turns (0 = +z, 1 = +x). */
+  facing: Rot
+  kind: 'chair' | 'cushion'
+}
+
+/** Above this many people, labels hide and show on tap instead (SPEC §10). */
+export const MAX_LABELS = 12
+
+/**
+ * Every seat in the room, in a stable order: chairs (in layout order) first, then floor cushions for
+ * overflow. Cushions go on free cells in front of the desks, two cells apart in staggered rows (so
+ * neighbours' labels don't overlap), nearest to the middle of the chairs first, facing the camera
+ * (decision 0006).
+ */
+export function seatList(
+  layout: readonly LayoutItem[],
+  size: number,
+  catalog: ReadonlyMap<string, ItemDef>,
+): Seat[] {
+  const chairs = layout.filter((item) => catalog.get(item.item_id)?.seat)
+  const seats: Seat[] = chairs.map((item) => ({ x: item.x, z: item.z, facing: item.rot, kind: 'chair' }))
+  const blocked = blockedCells(layout, catalog)
+  const furniture = layout.filter((item) => catalog.get(item.item_id)?.layer === 'floor')
+  const start = Math.min(size - 1, Math.max(0, ...furniture.map((i) => i.z + 1)) + 1)
+  const xs = chairs.map((c) => c.x)
+  const mid = xs.length > 0 ? (Math.min(...xs) + Math.max(...xs)) / 2 : (size - 1) / 2
+  const cells: { x: number; z: number; score: number }[] = []
+  for (let z = 0; z < size; z++) {
+    for (let x = 0; x < size; x++) {
+      // rows two apart, every other cell, staggered between rows
+      const row = z - start
+      if (row % 2 !== 0 || (x + row / 2) % 2 !== 0 || blocked.has(`${x},${z}`)) continue
+      const rowsAway = row >= 0 ? row : size - row
+      cells.push({ x, z, score: Math.abs(x - mid) + rowsAway * 0.9 })
+    }
+  }
+  cells.sort((a, b) => a.score - b.score || a.z - b.z || a.x - b.x)
+  for (const { x, z } of cells) seats.push({ x, z, facing: 0, kind: 'cushion' })
+  return seats
+}
+
+/**
+ * Gives each present person a seat index, keeping everyone where they already were. Newcomers
+ * (in `presentIds` order, i.e. join order) take the lowest free index. People beyond `seatCount`
+ * get no seat.
+ */
+export function assignSeats(
+  prev: ReadonlyMap<string, number>,
+  presentIds: readonly string[],
+  seatCount: number,
+): Map<string, number> {
+  const next = new Map<string, number>()
+  const used = new Set<number>()
+  for (const id of presentIds) {
+    const was = prev.get(id)
+    if (was !== undefined && was < seatCount && !used.has(was)) {
+      next.set(id, was)
+      used.add(was)
+    }
+  }
+  let free = 0
+  for (const id of presentIds) {
+    if (next.has(id)) continue
+    while (used.has(free)) free++
+    if (free >= seatCount) break
+    next.set(id, free)
+    used.add(free)
+  }
+  return next
+}

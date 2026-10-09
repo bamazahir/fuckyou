@@ -1,6 +1,6 @@
 import type { Session } from '@supabase/supabase-js'
 import { create } from 'zustand'
-import type { Profile } from '../lib/db'
+import type { Avatar, Profile } from '../lib/db'
 import { isConfigured, supabase } from '../lib/supabase'
 import { useTheme } from './theme'
 
@@ -17,6 +17,8 @@ interface AuthState {
   init: () => void
   reload: () => Promise<void>
   signOut: () => Promise<void>
+  /** Saves the bean colors (profiles.avatar is user-editable, SPEC §8.2). Returns an error code or null. */
+  updateAvatar: (avatar: Avatar) => Promise<string | null>
 }
 
 let initialized = false
@@ -61,6 +63,15 @@ export const useAuth = create<AuthState>((set, get) => ({
       personalRoomId: (roomRes.data as { id: string } | null)?.id ?? null,
       status: !profile ? 'needs_profile' : profile.consent_status === 'pending' ? 'pending' : 'ready',
     })
+  },
+
+  updateAvatar: async (avatar) => {
+    const profile = get().profile
+    if (!profile) return 'not_signed_in'
+    const { error } = await supabase.from('profiles').update({ avatar }).eq('id', profile.id)
+    if (error) return 'generic'
+    set({ profile: { ...profile, avatar } })
+    return null
   },
 
   signOut: async () => {

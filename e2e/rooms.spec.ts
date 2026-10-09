@@ -53,22 +53,47 @@ test('a dead invite link says so', async ({ page }) => {
   await expect(page.getByText('This invite link doesn’t work any more.')).toBeVisible()
 })
 
-test('a shared room shows live desks, leaderboard and members', async ({ page }) => {
+test('a shared room shows the isometric scene, leaderboard and members', async ({ page }) => {
   await mockSupabase(page, { profile: readyProfile, rooms: [sharedRoom()], live: [miaLive] })
   await signIn(page)
   await page.goto('/room/room-chem')
   await expect(page.getByRole('heading', { name: 'IB Chem' })).toBeVisible()
-  const desk = page.getByRole('button', { name: /^Mia, Focusing/ })
-  await expect(desk).toContainText('Kinetics')
-  await expect(page.getByText('free desk').first()).toBeVisible()
+  await expect(page.locator('canvas')).toBeVisible()
+  const label = page.getByRole('button', { name: /^Mia, Focusing, \d+:\d\d, Kinetics$/ })
+  await expect(label).toContainText('Mia')
   await expect(page.getByRole('list', { name: 'Week' })).toContainText('1h 30m')
   await page.getByRole('tab', { name: 'Lifetime' }).click()
   await expect(page.getByText('Every minute anywhere')).toBeVisible()
   await page.getByRole('tab', { name: 'Members' }).click()
   await expect(page.getByText('@mia')).toBeVisible()
-  await desk.click()
+  await expect(page.getByText('Here now')).toBeVisible()
+  await expect(page.getByText('Kinetics')).toBeVisible()
+  await label.click()
   await expect(page.getByRole('dialog', { name: 'Mia' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Remove from room' })).toBeVisible()
+})
+
+test('without WebGL the room falls back to the 2D desks', async ({ page }) => {
+  await page.addInitScript(() => {
+    const original = HTMLCanvasElement.prototype.getContext
+    HTMLCanvasElement.prototype.getContext = function (
+      this: HTMLCanvasElement,
+      type: string,
+      ...rest: unknown[]
+    ) {
+      if (type.startsWith('webgl')) return null
+      return (original as (...a: unknown[]) => unknown).call(this, type, ...rest)
+    } as typeof original
+  })
+  await mockSupabase(page, { profile: readyProfile, rooms: [sharedRoom()], live: [miaLive] })
+  await signIn(page)
+  await page.goto('/room/room-chem')
+  const desk = page.getByRole('button', { name: /^Mia, Focusing/ })
+  await expect(desk).toContainText('Kinetics')
+  await expect(page.getByText('free desk').first()).toBeVisible()
+  await expect(page.locator('canvas')).toHaveCount(0)
+  await desk.click()
+  await expect(page.getByRole('dialog', { name: 'Mia' })).toBeVisible()
 })
 
 test('alone in a room: the banner is proud, not lonely', async ({ page }) => {

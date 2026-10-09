@@ -198,6 +198,11 @@ export const copy = {
     report: 'Report',
     removed: 'You were removed from this room.',
     freeDesk: 'free desk',
+    sceneLoading: 'Setting up the room…',
+    sceneLabel: (name: string) => `${name}, isometric room view`,
+    label: (name: string, state: string, clock: string) => `${name}, ${state}, ${clock}`,
+    presentNow: 'Here now',
+    everyone: 'Everyone',
     onlineIdle: (names: string[]) =>
       `${names.join(', ')} ${names.length === 1 ? 'is' : 'are'} here, not studying yet.`,
     sittingDots: (n: number) => (n === 1 ? '1 pomodoro this sitting' : `${n} pomodoros this sitting`),
@@ -267,7 +272,13 @@ export const copy = {
   },
   myRoom: {
     title: 'My Room',
-    body: 'Your own little room. You’ll decorate it with what you earn from studying.',
+    body: 'Your own little room. Soon you’ll decorate it with what you earn from studying.',
+    studyHere: 'Study here',
+    editBean: 'Change bean',
+    beanTitle: 'Your bean',
+    save: 'Save',
+    saved: 'Bean updated',
+    sceneLabel: (name: string) => `${name}’s room`,
   },
   profile: {
     title: 'Profile',

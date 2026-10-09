@@ -1,11 +1,10 @@
 import { useEffect } from 'react'
 import { Navigate, useParams } from 'react-router-dom'
-import { RoomScene } from '../../components/RoomScene'
-import { useDaypart } from '../../components/useDaypart'
 import { copy } from '../../content/copy'
 import { useAuth } from '../../stores/auth'
 import { useRooms } from '../../stores/rooms'
 import { useTimer } from '../../stores/timer'
+import { PersonalRoomView } from '../myroom/PersonalRoomView'
 import { NotFoundPage } from '../NotFoundPage'
 import { NoteDialog } from './NoteDialog'
 import { SharedRoom } from './SharedRoom'
@@ -13,7 +12,6 @@ import { TimerDock } from './TimerDock'
 
 function SoloRoom({ roomId }: { roomId: string }) {
   const profile = useAuth((s) => s.profile)
-  const daypart = useDaypart()
   const { phase, afterEnded } = useTimer()
   if (!profile) return null
   return (
@@ -24,12 +22,7 @@ function SoloRoom({ roomId }: { roomId: string }) {
       </header>
       <div className="grid gap-5 lg:grid-cols-[1fr_22rem]">
         <div className="card card-raised self-start overflow-hidden">
-          <RoomScene
-            beans={[profile.avatar.colors]}
-            night={daypart === 'night'}
-            lampOn={phase.name === 'running' || daypart === 'night'}
-            label={copy.myRoom.title}
-          />
+          <PersonalRoomView className="h-[min(48svh,440px)] min-h-64 lg:h-[520px]" />
         </div>
         <TimerDock roomId={roomId} />
       </div>

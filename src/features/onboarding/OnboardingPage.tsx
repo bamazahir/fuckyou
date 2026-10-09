@@ -2,7 +2,8 @@ import { useMemo, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Bean } from '../../components/Bean'
 import { ErrorText, Screen } from '../../components/Screen'
-import { AVATAR_SLOTS, randomAvatar } from '../../content/avatar'
+import { AvatarSwatches } from '../../components/AvatarSwatches'
+import { randomAvatar } from '../../content/avatar'
 import consentTable from '../../content/consent-ages.json'
 import { copy } from '../../content/copy'
 import { COUNTRY_CODES } from '../../content/countries'
@@ -213,28 +214,7 @@ export function OnboardingPage() {
             <div className="mt-4 flex justify-center">
               <Bean colors={avatar.colors} size={110} title={displayName} />
             </div>
-            {AVATAR_SLOTS.map((slot) => (
-              <fieldset key={slot.key} className="mt-4">
-                <legend className="text-sm font-bold">{t.bean[slot.key]}</legend>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {slot.swatches.map((hex) => (
-                    <label key={hex} className="swatch" style={{ backgroundColor: hex }}>
-                      <input
-                        type="radio"
-                        name={slot.key}
-                        value={hex}
-                        checked={avatar.colors[slot.key] === hex}
-                        onChange={() =>
-                          setAvatar({ ...avatar, colors: { ...avatar.colors, [slot.key]: hex } })
-                        }
-                        className="sr-only"
-                        aria-label={`${t.bean[slot.key]} ${hex}`}
-                      />
-                    </label>
-                  ))}
-                </div>
-              </fieldset>
-            ))}
+            <AvatarSwatches avatar={avatar} onChange={setAvatar} />
             <ErrorText code={error} />
             <div className="mt-6 flex flex-wrap gap-3">
               <button type="button" className="btn btn-secondary" onClick={() => setStep(2)}>

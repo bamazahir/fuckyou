@@ -502,7 +502,7 @@ Push subscription flow (permission at first need; iOS install sheet), VAPID keys
 *Accept (builder on real devices):* on Android Chrome and an installed iOS PWA, a pomodoro started then backgrounded delivers "Break time" within ~15s of its end; "room is active" arrives on a second device and respects the 2h limit; two devices in a sync room show the same phase within 1s.
 *Pre-check:* before building M3, test on one classmate's actual phone (school-managed?) that PWA install and notifications work.
 
-**M4 — Isometric scene + bean avatars → LAUNCH**
+**M4 — Isometric scene + bean avatars → LAUNCH**  (split into M4a scene → M3 → M4b launch prep; decision 0006)
 Asset spike (licenses → `docs/ASSETS.md`), `scene/` with camera, grid, items, seats, bean + state animations + labels. The Room screen swaps the 2D view for the scene (the list stays in the Members tab). My Room read-only. Avatar editor (colors only). WebGL-unavailable fallback to the 2D view. The `/admin` metrics page (§12), so launch data is visible from day one. Run `ship-audit` and fix all blockers.
 *Accept:* 12 avatars render at ≥45 fps on a mid-range Android; the default room is under 2 MB of models; ship-audit verdict is SHIP.
 *Launch:* invite ~8 classmates.

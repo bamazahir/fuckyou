@@ -255,7 +255,10 @@ export async function mockSupabase(page: Page, initial: Partial<MockState> = {})
     }
 
     if (path === '/rest/v1/profiles') {
-      if (req.method() === 'PATCH') return route.fulfill({ status: 204 })
+      if (req.method() === 'PATCH') {
+        state.calls.push({ name: 'PATCH profiles', body: req.postDataJSON() as Row })
+        return route.fulfill({ status: 204 })
+      }
       return one(state.profile ? [state.profile] : [])
     }
     if (path === '/rest/v1/blocks') return json(route, [])

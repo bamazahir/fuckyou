@@ -89,7 +89,13 @@ for (const theme of THEMES) {
       await shot('home')
       await page.goto('/room/room-chem')
       await page.getByRole('button', { name: /^Mia, Focusing/ }).waitFor()
+      await page.locator('[data-scene-ready]').waitFor()
+      await page.waitForTimeout(800)
       await shot('room')
+      await page.goto('/me')
+      await page.locator('[data-scene-ready]').waitFor()
+      await page.waitForTimeout(800)
+      await shot('myroom')
       if (theme === 'lamplight') {
         await page.goto('/profile')
         await page.getByText('Focus, last 7 days').waitFor()

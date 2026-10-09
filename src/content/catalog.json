@@ -1,0 +1,70 @@
+{
+  "items": [
+    {
+      "id": "desk_oak",
+      "name": "Oak desk",
+      "model": "desk",
+      "footprint": [1, 1],
+      "layer": "floor",
+      "price": 120
+    },
+    {
+      "id": "chair_wood",
+      "name": "Wooden chair",
+      "model": "chair",
+      "footprint": [1, 1],
+      "layer": "floor",
+      "seat": true,
+      "price": 60
+    },
+    {
+      "id": "rug_stripe",
+      "name": "Striped rug",
+      "model": "rug",
+      "footprint": [3, 3],
+      "layer": "rug",
+      "price": 80
+    },
+    {
+      "id": "rug_long",
+      "name": "Big rug",
+      "model": "rug",
+      "footprint": [4, 6],
+      "layer": "rug",
+      "price": 140
+    },
+    {
+      "id": "lamp_floor",
+      "name": "Floor lamp",
+      "model": "lamp",
+      "footprint": [1, 1],
+      "layer": "floor",
+      "light": true,
+      "price": 90
+    },
+    {
+      "id": "plant_pot",
+      "name": "Potted plant",
+      "model": "plant",
+      "footprint": [1, 1],
+      "layer": "floor",
+      "price": 40
+    },
+    {
+      "id": "bookshelf",
+      "name": "Bookshelf",
+      "model": "bookshelf",
+      "footprint": [2, 1],
+      "layer": "floor",
+      "price": 220
+    },
+    {
+      "id": "window_double",
+      "name": "Window",
+      "model": "window",
+      "footprint": [2, 1],
+      "layer": "wall",
+      "price": 150
+    }
+  ]
+}
