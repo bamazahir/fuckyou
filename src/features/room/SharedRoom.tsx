@@ -62,9 +62,11 @@ export function SharedRoom({ room }: { room: MyRoom }) {
   const { phase, afterEnded } = useTimer()
   const { leave } = useRooms()
   const toast = useUi((s) => s.toast)
-  const { live, online, bubbles, removed, refresh, react, nudge, syncKey } = useRoomChannel(room.id)
+  const { live, online, bubbles, removed, refresh, react, nudge, syncKey, setSync } = useRoomChannel(room.id)
   const { info, refetch: refetchInfo } = useRoomInfo(room.id, syncKey)
   const sync = info?.sync ?? null
+  // Received nudges are dropped during a shared focus too, not just the button (SPEC §6.2.1).
+  useEffect(() => setSync(sync), [setSync, sync])
   const [notifyOn, setNotifyOn] = useState<boolean | null>(null)
   const now = useNow(true)
   const sharedPhase = sync ? syncPhase(sync, now) : null
@@ -163,8 +165,8 @@ export function SharedRoom({ room }: { room: MyRoom }) {
   if (!me) return null
   return (
     <div className="space-y-5">
-      <header className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
+      <header className="flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0 flex-1 basis-44">
           <h1 className="font-display truncate text-3xl font-bold">{room.name}</h1>
           <p className="text-on-bg-muted">
             {t.present(studyingIds.length)} · {copy.home.members(room.member_count)}

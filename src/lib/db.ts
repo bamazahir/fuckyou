@@ -76,6 +76,8 @@ export interface MyRoom {
   studying_count: number
   sync_pomodoro: boolean
   studying: { display_name: string; avatar: Avatar }[]
+  /** Your place on the room's week board, or null before you have minutes there. */
+  week_rank?: number | null
 }
 
 export interface LiveMember {

@@ -31,6 +31,13 @@ test('room cards show who is studying', async ({ page }) => {
   await expect(page.getByRole('link', { name: /IB Chem/ })).toContainText('1 studying now')
 })
 
+test('room cards show your place on the week board', async ({ page }) => {
+  await mockSupabase(page, { profile: readyProfile, rooms: [sharedRoom({ week_rank: 2 })] })
+  await signIn(page)
+  await page.goto('/')
+  await expect(page.getByRole('link', { name: /IB Chem/ })).toContainText('#2 this week')
+})
+
 test('an invite link previews the room before sign-in, then joins after it', async ({ page }) => {
   const state = await mockSupabase(page)
   await page.goto('/j/AB3DK7M9')

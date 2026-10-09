@@ -158,6 +158,7 @@ export const copy = {
     emptyBody: 'Rooms are where you study with friends. Make one and send the link, or join with a code.',
     createRoom: 'Create room',
     joinWithCode: 'Join with code',
+    weekRank: (n: number) => `#${n} this week`,
     studyingNow: (n: number) =>
       n === 0 ? 'Nobody studying' : n === 1 ? '1 studying now' : `${n} studying now`,
     members: (n: number) => (n === 1 ? '1 member' : `${n} members`),

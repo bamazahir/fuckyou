@@ -1,5 +1,7 @@
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { syncPhase, type SyncSettings } from '../../core/sync'
+import { nowMs } from '../../lib/servertime'
 import { copy } from '../../content/copy'
 import { createRateLimiter } from '../../core/room'
 import { chime } from '../../lib/chime'
@@ -42,6 +44,10 @@ export function useRoomChannel(roomId: string) {
   const allowSend = useRef(createRateLimiter(3000))
   const allowReceive = useRef(createRateLimiter(3000))
   const known = useRef<Set<string> | null>(null)
+  const syncRef = useRef<SyncSettings | null>(null)
+  const setSync = useCallback((s: SyncSettings | null) => {
+    syncRef.current = s
+  }, [])
 
   const refresh = useCallback(() => setReloadKey((k) => k + 1), [])
 
@@ -109,6 +115,7 @@ export function useRoomChannel(roomId: string) {
       .on('broadcast', { event: 'nudge' }, ({ payload }) => {
         const p = payload as { from?: string; to?: string; name?: string }
         if (!p.from || p.to !== me.id || blocked.has(p.from)) return
+        if (syncRef.current && syncPhase(syncRef.current, nowMs()).phase === 'focus') return
         if (!allowReceive.current(`nudge:${p.from}`, Date.now())) return
         toast(copy.room.nudged(String(p.name ?? '').slice(0, 30)))
       })
@@ -147,5 +154,5 @@ export function useRoomChannel(roomId: string) {
     [me],
   )
 
-  return { live, online, bubbles, removed, refresh, react, nudge, syncKey }
+  return { live, online, bubbles, removed, refresh, react, nudge, syncKey, setSync }
 }

@@ -110,6 +110,7 @@ export function HomePage() {
                   />
                   <span className="font-bold">{t.studyingNow(r.studying_count)}</span>
                   <span className="text-muted">· {t.members(r.member_count)}</span>
+                  {r.week_rank ? <span className="pill ml-auto">{t.weekRank(r.week_rank)}</span> : null}
                 </p>
               </Link>
             </li>

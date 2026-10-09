@@ -1,5 +1,5 @@
 begin;
-select plan(65);
+select plan(67);
 
 -- ---------- fixtures: owner Olu, member Mia, outsider Xan, pending teen Pip, admin Ada ----------
 select tests.create_user('00000000-0000-0000-0000-00000000000a', 'olu@example.com');
@@ -101,6 +101,8 @@ select '00000000-0000-0000-0000-00000000000a', r.id, gen_random_uuid(), 'stopwat
 select tests.act_as('00000000-0000-0000-0000-00000000000a');
 select is((select studying_count from public.my_rooms() where id = (select id from t_room)), 1, 'my_rooms shows live counts');
 select is((select count(*)::int from public.my_rooms()), 1, 'my_rooms lists only shared rooms I belong to');
+select ok((select week_rank is null or week_rank >= 1 from public.my_rooms() limit 1), 'my_rooms carries your week rank');
+select is((select tz from public.create_room('Bad tz room', 'Mars/Olympus')), 'UTC', 'unknown room timezones fall back to UTC');
 select is((select count(*)::int from public.room_live((select id from t_room))), 1, 'room_live shows the one person studying');
 select is((select state from public.room_live((select id from t_room))), 'focus', 'their state is focus');
 select is((select status_line from public.room_live((select id from t_room))), 'Kinetics', 'with their status line');
