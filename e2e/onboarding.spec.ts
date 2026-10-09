@@ -39,3 +39,22 @@ test('a new user completes onboarding and lands home', async ({ page }) => {
     p_age_bracket: '16-17',
   })
 })
+
+test('a missing database schema shows the real error and a retry', async ({ page }) => {
+  await mockSupabase(page)
+  await page.route('http://supabase.test/rest/v1/profiles*', (route) =>
+    route.fulfill({
+      status: 404,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        code: 'PGRST205',
+        message: "Could not find the table 'public.profiles' in the schema cache",
+      }),
+    }),
+  )
+  await signIn(page)
+  await page.goto('/')
+  await expect(page.getByRole('heading', { name: 'The database isn’t set up yet' })).toBeVisible()
+  await expect(page.getByText(/PGRST205: Could not find the table/)).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Try again' })).toBeVisible()
+})

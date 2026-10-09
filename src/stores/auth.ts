@@ -12,6 +12,8 @@ interface AuthState {
   session: Session | null
   profile: Profile | null
   personalRoomId: string | null
+  /** Last load failure, shown on the error screen so problems are diagnosable (e.g. missing migrations). */
+  loadError: string | null
   init: () => void
   reload: () => Promise<void>
   signOut: () => Promise<void>
@@ -24,6 +26,7 @@ export const useAuth = create<AuthState>((set, get) => ({
   session: null,
   profile: null,
   personalRoomId: null,
+  loadError: null,
 
   init: () => {
     if (initialized || !isConfigured) return
@@ -46,12 +49,14 @@ export const useAuth = create<AuthState>((set, get) => ({
       supabase.from('rooms').select('id').eq('is_personal', true).maybeSingle(),
     ])
     if (profileRes.error) {
-      set({ status: 'error' })
+      const e = profileRes.error as { code?: string; message?: string }
+      set({ status: 'error', loadError: [e.code, e.message].filter(Boolean).join(': ') || 'unknown' })
       return
     }
     const profile = (profileRes.data as Profile | null) ?? null
     useTheme.getState().adoptFromProfile(profile?.settings as Record<string, unknown> | undefined)
     set({
+      loadError: null,
       profile,
       personalRoomId: (roomRes.data as { id: string } | null)?.id ?? null,
       status: !profile ? 'needs_profile' : profile.consent_status === 'pending' ? 'pending' : 'ready',

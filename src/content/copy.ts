@@ -37,6 +37,13 @@ export const copy = {
     consent_expired: 'This request expired. Your child can ask again from the app.',
     account_banned: 'This account can’t use Studyroom.',
   },
+  loadError: {
+    body: 'Your sign-in worked, but loading your profile failed. Try again in a moment.',
+    schemaTitle: 'The database isn’t set up yet',
+    schemaBody:
+      'Sign-in worked, but the Studyroom tables aren’t in this Supabase project. Apply the migrations (supabase db push), then try again.',
+    retry: 'Try again',
+  },
   unconfigured: {
     title: 'Not connected yet',
     body: 'This build has no Supabase project. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to .env.local (or to the Vercel project settings) and rebuild.',
