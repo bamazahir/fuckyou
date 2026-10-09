@@ -5,7 +5,7 @@ shared doc "Studyroom — open items" (https://claude.ai/code/artifact/37ce5a78-
 Agents: keep both in step, add new items when a milestone needs a device or a person, and never tick one yourself.
 
 ## Setup to do once (from the repo folder)
-- [ ] `pnpm dlx supabase db push` (enable pg_cron + pg_net first); migrations up to the latest in `supabase/migrations/`
+- [ ] `pnpm dlx supabase db push` (enable pg_cron + pg_net first); migrations up to the latest in `supabase/migrations/` (currently `20261012100000_m7_audit_fixes`)
 - [ ] Make yourself admin: `update public.profiles set is_admin = true where handle = '<you>';`
 - [ ] `node scripts/push/vapid.mjs` → VAPID keys; `openssl rand -hex 32` → PUSH_SECRET
 - [ ] `supabase secrets set VAPID_PUBLIC_KEY VAPID_PRIVATE_KEY VAPID_SUBJECT=mailto:… PUSH_SECRET APP_URL`
@@ -47,4 +47,9 @@ reaction/nudge counts (accepted, decision 0010) · 13–15 consent outside the s
 - [ ] M6 device check: owner switches the room station; a second device follows within a few seconds
 - [ ] M6 device check: phone lock screen shows the station and play/pause works (Media Session); on iPhone the silent switch mutes it (expected)
 - [ ] M6 accept (after lofi tracks exist): two devices in one room play the same track within 1 s
-- [ ] M7: Lighthouse run on the deployed URL
+- [ ] M7: Lighthouse run on the deployed URL (PWA installable)
+- [ ] M7 device check: on Android Chrome and an installed iPhone app, start Rain, lock the screen: it should keep playing and the lock screen should show "Rain" with play/pause
+- [ ] M7 device check: open the installed app with Wi-Fi off → "You're offline" page, then it opens by itself when Wi-Fi is back
+- [ ] M7 device check: iPhone launch screen shows the bean + "Studyroom" (not a white flash) when opening the installed app
+- [ ] M7 after deploy: `curl -I https://<app>/splash/splash-1179x2556.png` and `/og-image.png` return `image/png`; once the domain is final, make `og:image` an absolute URL and add `og:url` in `index.html`
+- [ ] M7: say if you'd like the app icon redrawn with the new chibi bean (it still uses the M0 drawing)

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState, type KeyboardEvent } from 'react'
 import { ErrorText } from '../../components/Screen'
 import { copy } from '../../content/copy'
 import { CATALOG } from '../../content/layouts'
@@ -121,6 +121,31 @@ export function RoomEditor({
     setSelected(null)
   }
 
+  function onKeys(e: KeyboardEvent<HTMLDivElement>) {
+    if (!placing) return
+    const step: Record<string, [number, number]> = {
+      ArrowLeft: [-1, 0],
+      ArrowRight: [1, 0],
+      ArrowUp: [0, -1],
+      ArrowDown: [0, 1],
+    }
+    const d = step[e.key]
+    if (d) {
+      e.preventDefault()
+      const clamp = (v: number) => Math.min(size - 1, Math.max(0, v))
+      setMode({ ...placing, cell: { x: clamp(placing.cell.x + d[0]), z: clamp(placing.cell.z + d[1]) } })
+    } else if (e.key === 'r' || e.key === 'R') {
+      e.preventDefault()
+      rotate()
+    } else if (e.key === 'Enter') {
+      e.preventDefault()
+      place()
+    } else if (e.key === 'Escape') {
+      e.preventDefault()
+      setMode({ kind: 'idle' })
+    }
+  }
+
   const putAway = () => {
     if (selected === null) return
     setLayout((l) => l.filter((_, i) => i !== selected))
@@ -172,18 +197,27 @@ export function RoomEditor({
         </div>
       </header>
       <div className="card card-raised overflow-hidden">
-        <RoomView
-          className="aspect-[5/4] w-full max-h-[70svh] lg:aspect-auto lg:h-[560px]"
-          size={size}
-          layout={shown}
-          avatars={[]}
-          night={night}
-          lampOn
-          label={title}
-          walkIn={false}
-          edit={edit}
-          fallback={null}
-        />
+        {/* Keyboard placing: arrows move the thing, R turns it, Enter places it, Esc cancels. */}
+        <div
+          tabIndex={0}
+          role="group"
+          aria-label={`${title}. ${t.keysHint}`}
+          onKeyDown={onKeys}
+          className="focus-visible:outline-offset-[-3px]"
+        >
+          <RoomView
+            className="aspect-[5/4] w-full max-h-[70svh] lg:aspect-auto lg:h-[560px]"
+            size={size}
+            layout={shown}
+            avatars={[]}
+            night={night}
+            lampOn
+            label={title}
+            walkIn={false}
+            edit={edit}
+            fallback={null}
+          />
+        </div>
         <div className="flex flex-wrap items-center gap-2 border-t-2 border-line bg-surface-2 px-4 py-2">
           {placing ? (
             <>

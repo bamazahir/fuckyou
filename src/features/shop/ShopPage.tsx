@@ -69,7 +69,7 @@ export function ShopPage() {
     ) : (
       <Loading />
     )
-  const funds = roomId ? (bank ?? 0) : shownBalance(balance ?? 0).coins
+  const funds = roomId ? Math.max(0, bank ?? 0) : shownBalance(balance ?? 0).coins
   const items = [...CATALOG.values()].filter((i) => i.category === tab)
 
   async function purchase(item: { id: string; name: string }) {

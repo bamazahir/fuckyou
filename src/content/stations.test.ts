@@ -29,6 +29,8 @@ describe('stations.json', () => {
         for (const t of s.tracks) {
           expect(t.license).toMatch(/^(CC0|explicit permission)/)
           expect(t.source_url).toMatch(/^https:\/\//)
+          // The CSP's media-src only allows Supabase Storage.
+          expect(new URL(t.src).hostname).toMatch(/\.supabase\.co$/)
           expect(assets).toContain(t.src.split('/').pop() ?? t.src)
         }
   })

@@ -65,8 +65,8 @@ describe('stations', () => {
 
 describe('helpers', () => {
   it('re-seeks only on real drift', () => {
-    expect(needsSeek(10, 10.5)).toBe(false)
-    expect(needsSeek(10, 11.2)).toBe(true)
+    expect(needsSeek(10, 10.3)).toBe(false)
+    expect(needsSeek(10, 10.5)).toBe(true)
   })
   it('clamps stored volume', () => {
     expect(clampVolume(2)).toBe(1)

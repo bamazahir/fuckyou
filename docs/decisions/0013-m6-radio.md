@@ -11,13 +11,15 @@ SPEC §11 puts every station's audio files in Supabase Storage, each one license
   - Noise has no "position", so room sync for these stations is just "the same station". Everyone in the room still hears the station the owner picked.
 - **Lofi stays a playlist station with no tracks.** It shows as "Coming soon" and can't be picked until the builder adds tracks to `stations.json`, each with a `docs/ASSETS.md` row; a unit test checks that row and the licence.
   - New rooms, and rooms still on the old `'lofi'` default, are set to Rain.
-- **The playlist sync is written and unit-tested** (`radioPosition`, `serverNow()`, re-seek beyond 0.75 s) but untested with real files. The builder checks it once tracks exist.
+- **The playlist sync is written and unit-tested** (`radioPosition`, `serverNow()`, re-seek beyond 0.35 s) but untested with real files. The builder checks it once tracks exist.
 - **Tracks play through WebAudio** (an `<audio>` element routed through a gain node with `crossOrigin='anonymous'`). Volume then works on iOS, where `audio.volume` is read-only. Storage's public bucket serves CORS headers.
 - **The personal room's station is remembered per device** (localStorage), not in the database. It's a private preference with no need to sync; it avoids a new profile field.
   - **Volume and mute are per listener, per device** (SPEC §11).
 - **The radio stops when you leave the room's screen.** The timer keeps running and the radio doesn't follow you around the app, so it's always clear which room you're hearing.
 - **The station list is checked on both sides.** `private.valid_station` in SQL holds the same ids as `stations.json`, and a unit test fails when they differ. `set_room` raises `invalid_station` and broadcasts `station`, so members refetch.
+- **Everything plays through one hidden `<audio>` element** fed by a WebAudio MediaStream (ship audit, M7). Phones then treat the radio as media, so the lock screen can show it and offer play/pause. If the browser refuses that element, the sound goes straight to the speakers instead.
+- **Noise is synthesised in a Web Worker** at 44.1 kHz, as soon as a room's screen opens, so the first Play doesn't freeze the timer. Tracks re-sync every 2 s once they drift more than 0.35 s.
 
 ## Consequences
 - The M6 acceptance test ("two devices play the same track within 1 s") can only be run once lofi tracks are uploaded. Until then the builder can check that both devices switch station when the owner picks one.
-- iOS mutes WebAudio when the ring/silent switch is on. That's expected platform behaviour; it's in the builder checks.
+- iOS may mute WebAudio when the ring/silent switch is on, and may stop it when the screen locks. The `<audio>` route above is meant to avoid both, but only a real iPhone can confirm it; it's in the builder checks.

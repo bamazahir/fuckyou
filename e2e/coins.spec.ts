@@ -108,3 +108,26 @@ test('you can visit a roommate’s room from their card', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Mia’s room' })).toBeVisible()
   await expect(page.locator('canvas').first()).toBeVisible()
 })
+
+test('things can be placed with the keyboard too', async ({ page }) => {
+  const state = await mockSupabase(page, {
+    profile: readyProfile,
+    inventory: [...starterInventory, { item_id: 'crate', qty: 1 }],
+  })
+  await signIn(page)
+  await page.goto('/me/decorate')
+  await page.getByRole('button', { name: 'Crate, 1' }).click()
+  const scene = page.getByRole('group', { name: /arrow keys move it/ })
+  await scene.focus()
+  await page.keyboard.press('ArrowLeft')
+  await page.keyboard.press('ArrowDown')
+  await page.keyboard.press('Enter')
+  await page.getByRole('button', { name: 'Save', exact: true }).click()
+  await expect(page.getByText('Room saved')).toBeVisible()
+  expect(state.calls.find((c) => c.name === 'save_layout')?.body.p_layout).toContainEqual({
+    item_id: 'crate',
+    x: 3,
+    z: 5,
+    rot: 0,
+  })
+})

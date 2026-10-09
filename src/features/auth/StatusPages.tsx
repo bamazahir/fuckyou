@@ -1,4 +1,7 @@
+import { useEffect } from 'react'
 import { Screen } from '../../components/Screen'
+import { useOnline } from '../../components/useOnline'
+import { rpcErrorCode } from '../../lib/supabase'
 import { copy } from '../../content/copy'
 import { useAuth } from '../../stores/auth'
 
@@ -22,7 +25,31 @@ const SCHEMA_MISSING = /PGRST205|42P01|does not exist|Could not find the table/i
 export function LoadErrorPage() {
   const loadError = useAuth((s) => s.loadError)
   const doSignOut = useAuth((s) => s.signOut)
+  const online = useOnline()
+  const offline = !online || (loadError !== null && rpcErrorCode({ message: loadError }) === 'offline')
   const schemaMissing = loadError !== null && SCHEMA_MISSING.test(loadError)
+  // Opened offline: try again by itself as soon as the connection is back.
+  useEffect(() => {
+    const retry = () => void useAuth.getState().reload()
+    window.addEventListener('online', retry)
+    return () => window.removeEventListener('online', retry)
+  }, [])
+  if (offline)
+    return (
+      <Screen>
+        <div className="card card-raised p-6" role="alert">
+          <h1 className="font-display text-2xl font-bold">{copy.routeError.offlineTitle}</h1>
+          <p className="mt-3">{copy.offline.coldStart}</p>
+          <button
+            type="button"
+            className="btn btn-primary mt-5"
+            onClick={() => void useAuth.getState().reload()}
+          >
+            {copy.loadError.retry}
+          </button>
+        </div>
+      </Screen>
+    )
   return (
     <Screen>
       <div className="card card-raised p-6">

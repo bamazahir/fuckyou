@@ -388,7 +388,7 @@ export function SharedRoom({ room }: { room: MyRoom }) {
             </label>
             {info && (
               <p className="inline-flex items-center gap-2 font-bold" data-testid="room-bank">
-                <CoinIcon /> {copy.coins.bank(info.bank)}
+                <CoinIcon /> {copy.coins.bank(Math.max(0, info.bank))}
               </p>
             )}
             <button

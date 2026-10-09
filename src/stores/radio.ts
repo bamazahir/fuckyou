@@ -56,7 +56,7 @@ interface RadioState {
   /** Start (or switch to) a station in a room. Call from a click: browsers need a gesture. */
   play: (roomId: string, station: Station) => Promise<void>
   pause: () => void
-  /** The room changed station: follow it if we're playing there. */
+  /** The room changed station: follow it if we're playing there (and get its sound ready). */
   follow: (roomId: string, station: Station) => void
   setVolume: (v: number) => void
   toggleMute: () => void
@@ -120,6 +120,7 @@ export const useRadio = create<RadioState>((set, get) => {
     },
 
     follow: (roomId, station) => {
+      getEngine().prewarm(station)
       const s = get()
       if (s.roomId !== roomId || s.station?.id === station.id) return
       if (s.playing) void s.play(roomId, station)

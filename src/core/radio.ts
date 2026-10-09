@@ -60,7 +60,7 @@ export function radioPosition(
 }
 
 /** Re-seek a playing track only when it has drifted noticeably (SPEC M6: within 1 s across devices). */
-export function needsSeek(currentS: number, expectedS: number, toleranceS = 0.75): boolean {
+export function needsSeek(currentS: number, expectedS: number, toleranceS = 0.35): boolean {
   return Math.abs(currentS - expectedS) > toleranceS
 }
 

@@ -10,7 +10,7 @@ import { PersonalRoomView } from './PersonalRoomView'
 
 const t = copy.myRoom
 
-/** Your room, read-only until decorating arrives in M5 (SPEC §5.4). */
+/** Your room: your bean, your coins, and the way into decorating and the shop (SPEC §5.4). */
 export function MyRoomPage() {
   const personalRoomId = useAuth((s) => s.personalRoomId)
   const [editing, setEditing] = useState(false)

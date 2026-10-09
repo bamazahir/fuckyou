@@ -14,7 +14,7 @@ export default defineConfig({
       registerType: 'autoUpdate',
       injectRegister: false,
       injectManifest: {
-        // Fonts: precache latin subsets only; other scripts load on demand.
+        // Fonts: precache the latin and latin-ext subsets only; other scripts load on demand.
         globPatterns: ['**/*.{js,css,html,svg,png,webp}', '**/*-latin-*.woff2'],
         // Launch screens and the social preview are fetched by iOS / link previews, not the app.
         globIgnores: ['splash/**', 'og-image.png'],

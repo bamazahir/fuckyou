@@ -19,7 +19,12 @@ SPEC §6.5, §8.3 and §10 describe coins, the shop, room banks and edit mode. A
 - **Placement is tap-first.** The first tap moves the ghost and a second tap on the same cell places it, so phones (no hover) work the same way as desktops. A Place button does the same.
 - **Overflow seats** (cushions) are unchanged: when a room has more people than chairs, cushions fill the open floor at render time. They're not catalog items.
 - **Visiting** someone's room needs a shared (non-personal) room with them, and no block in either direction.
+- **Catalog shape differs from SPEC §8:** the categories are furniture/decor/wall (the spec's `desk` is just furniture), and `layer` (floor/rug/wall) replaces the `wall` boolean, because rugs need their own layer. `my_wallet()` replaces the spec's `my_balance` view, so the cap and today's earnings come back in one call.
+- **A room bank can go negative** when a void takes back more than is left. The UI shows 0, and new study time fills the gap first, the same as a personal wallet.
+- **Voided coins still count towards today's 720.** A void doesn't hand back earning room for that day. That's simpler, and it can't be gamed.
+- **The timezone is fixed at signup** (ship audit, M7): coins are counted per local day, so changing it would reset the cap. A `set_timezone` RPC with a weekly limit can come if someone moves.
+- **Saved layouts are normalised** to `{item_id, x, z, rot}` and capped at 16 KB, so a layout can't carry text between members.
 
 ## Consequences
-- Prices are first guesses (1 coin per focus minute; things cost 30 to 600). They need tuning after real use, which is tracked in `docs/OPEN-ITEMS.md`.
+- Prices are first guesses (1 coin per focus minute; room things cost 25 to 1500, shop accessories 150 to 400). They need tuning after real use, which is tracked in `docs/OPEN-ITEMS.md`.
 - Thumbnails cost a few frames the first time the shop opens on a device. That's acceptable at this catalog size (37 things).
