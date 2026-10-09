@@ -34,6 +34,22 @@ body,
   min-height: 100%;
 }
 
+html {
+  /* Keep focused fields clear of the fixed bottom nav on phones. */
+  scroll-padding-bottom: 6rem;
+  -webkit-tap-highlight-color: transparent;
+}
+
+a,
+button,
+label,
+input,
+select,
+textarea,
+summary {
+  touch-action: manipulation;
+}
+
 body {
   margin: 0;
   background-color: var(--bg);
@@ -250,5 +266,6 @@ body::before {
   *::after {
     transition-duration: 0ms !important;
     animation-duration: 0ms !important;
+    animation-delay: 0ms !important;
   }
 }

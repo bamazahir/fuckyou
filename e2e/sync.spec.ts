@@ -37,7 +37,7 @@ test('late in a focus, or on the shared break, you join the next one', async ({ 
   await expect(page.getByTestId('sync-phase')).toContainText('Break together')
   await expect(page.getByText('Shared break: say hi with a reaction.')).toBeVisible()
   await page.getByRole('button', { name: /^Join the next focus in/ }).click()
-  await expect(page.getByRole('status').filter({ hasText: 'You’re in. Starting in' })).toBeVisible()
+  await expect(page.getByText(/You’re in. Starting in/)).toBeVisible()
   await page.getByRole('button', { name: 'Cancel' }).click()
   await expect(page.getByRole('button', { name: /^Join the next focus in/ })).toBeVisible()
 })

@@ -24,7 +24,7 @@ test('a pending teen asks a parent, and the parent page grants consent', async (
   await expect(page).toHaveURL(/\/waiting$/)
   await page.getByLabel('Parent or guardian’s email').fill('parent@example.com')
   await page.getByRole('button', { name: 'Send the request' }).click()
-  await expect(page.getByRole('status')).toContainText('Sent to parent@example.com')
+  await expect(page.getByText(/Sent to parent@example.com/)).toBeVisible()
   expect(state.calls.find((c) => c.name === 'request_parental_consent')?.body).toMatchObject({
     p_parent_email: 'parent@example.com',
   })

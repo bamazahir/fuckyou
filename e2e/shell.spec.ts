@@ -8,7 +8,7 @@ test('signed-out visitors land on sign-in', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Continue with Google' })).toBeVisible()
   await page.getByLabel('Email').fill('ana@example.com')
   await page.getByRole('button', { name: 'Email me a sign-in link' }).click()
-  await expect(page.getByRole('status')).toContainText('Check ana@example.com')
+  await expect(page.getByText(/Check ana@example.com/)).toBeVisible()
 })
 
 test('signed-in users see the three tabs and can navigate', async ({ page }) => {

@@ -1,3 +1,4 @@
+import { goBack } from '../../components/goBack'
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { RoomScene } from '../../components/RoomScene'
@@ -51,7 +52,7 @@ export function VisitPage() {
     return (
       <div className="card p-5">
         <p>{t.notAllowed}</p>
-        <button type="button" className="btn btn-secondary mt-3" onClick={() => navigate(-1)}>
+        <button type="button" className="btn btn-secondary mt-3" onClick={() => goBack(navigate, '/')}>
           {t.back}
         </button>
       </div>
@@ -59,8 +60,8 @@ export function VisitPage() {
   return (
     <div className="space-y-5">
       <header className="flex items-center justify-between gap-3">
-        <h1 className="font-display text-3xl font-bold">{t.title(room.display_name)}</h1>
-        <button type="button" className="btn btn-secondary" onClick={() => navigate(-1)}>
+        <h1 className="font-display min-w-0 text-3xl font-bold break-words">{t.title(room.display_name)}</h1>
+        <button type="button" className="btn btn-secondary" onClick={() => goBack(navigate, '/')}>
           {t.back}
         </button>
       </header>

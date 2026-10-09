@@ -22,7 +22,7 @@ test('the room radio: owners pick the station, everyone plays and sets their own
 
   await page.getByRole('button', { name: 'Play', exact: true }).click()
   await expect(page.getByRole('button', { name: 'Pause', exact: true })).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Pause Café' })).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.getByRole('button', { name: 'Pause Café' })).toBeVisible()
   await page.getByRole('slider', { name: 'Volume' }).fill('0.3')
   await page.getByRole('button', { name: 'Mute' }).click()
   await expect(page.getByRole('button', { name: 'Unmute' })).toBeVisible()

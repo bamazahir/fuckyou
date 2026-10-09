@@ -28,6 +28,7 @@ export function NoteDialog({
   const ref = useRef<HTMLDialogElement>(null)
   const [note, setNote] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
   const submitNote = useTimer((s) => s.submitNote)
   const earnedToday = useWallet((s) => s.earnedToday)
   const toast = useUi((s) => s.toast)
@@ -40,8 +41,11 @@ export function NoteDialog({
 
   async function save(e: FormEvent) {
     e.preventDefault()
+    if (busy) return
     if (noteError(note)) return setError('invalid_note')
+    setBusy(true)
     const coins = await submitNote(sessionId, note)
+    setBusy(false)
     if (coins === null) return setError(useTimer.getState().error ?? 'generic')
     if (coins > 0) toast(copy.coins.earned(coins))
     void useWallet.getState().load()
@@ -53,7 +57,7 @@ export function NoteDialog({
       ref={ref}
       aria-labelledby="note-title"
       onCancel={() => onClose(false)}
-      className="card card-raised m-auto w-[min(28rem,calc(100%-2rem))] p-6 backdrop:bg-black/60"
+      className="card card-raised m-auto max-h-[90dvh] w-[min(28rem,calc(100%-2rem))] overflow-y-auto overscroll-contain p-6 backdrop:bg-black/60"
     >
       <form onSubmit={save}>
         <h2 id="note-title" className="font-display text-2xl font-bold">
@@ -83,7 +87,11 @@ export function NoteDialog({
           <button type="button" className="btn btn-secondary" onClick={() => onClose(false)}>
             {t.later}
           </button>
-          <button type="submit" className="btn btn-primary flex-1" disabled={noteError(note) !== null}>
+          <button
+            type="submit"
+            className="btn btn-primary flex-1"
+            disabled={busy || noteError(note) !== null}
+          >
             {t.saveNote}
           </button>
         </div>

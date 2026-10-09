@@ -99,13 +99,13 @@ export function HomePage() {
                 className="card card-raised flex min-h-28 flex-col justify-between gap-3 p-4 hover:-translate-y-0.5 transition-transform"
               >
                 <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h3 className="font-display text-xl font-bold">{r.name}</h3>
+                  <div className="min-w-0">
+                    <h3 className="font-display text-xl font-bold break-words">{r.name}</h3>
                     {r.sync_pomodoro && <span className="pill mt-1">{copy.sync.badge}</span>}
                   </div>
                   <AvatarStack people={r.studying} size={28} />
                 </div>
-                <p className="flex items-center gap-2 text-sm">
+                <p className="flex flex-wrap items-center gap-2 text-sm">
                   <span
                     className={`inline-block h-2.5 w-2.5 rounded-full border-2 border-line ${r.studying_count > 0 ? 'bg-good' : 'bg-surface-2'}`}
                     aria-hidden="true"

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { rovingKeys } from './roving'
 import {
   ACCESSORIES,
   AVATAR_SLOTS,
@@ -74,6 +75,8 @@ export function AvatarSwatches({
             type="button"
             role="tab"
             aria-selected={tab === k}
+            tabIndex={tab === k ? 0 : -1}
+            onKeyDown={rovingKeys}
             className={`chip ${tab === k ? 'chip-on' : ''}`}
             onClick={() => setTab(k)}
           >

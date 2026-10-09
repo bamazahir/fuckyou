@@ -1,4 +1,5 @@
 import type { Station } from '../../core/radio'
+import { rovingKeys } from '../../components/roving'
 import { RadioPill } from '../radio/RadioPanel'
 import { useEffect, useRef, useState } from 'react'
 import { ErrorText } from '../../components/Screen'
@@ -72,8 +73,11 @@ function Running({ session, together }: { session: SessionRow; together: boolean
         </div>
       </div>
       {view.checkinDue && view.checkinSecondsLeft !== null && (
-        <div className="card mt-4 w-full bg-accent p-4 text-on-accent" role="alert">
-          <p className="font-display text-lg font-bold">{t.checkinTitle}</p>
+        <div className="card mt-4 w-full bg-accent p-4 text-on-accent">
+          {/* Only the title is announced; the countdown below changes every second. */}
+          <p className="font-display text-lg font-bold" role="alert">
+            {t.checkinTitle}
+          </p>
           <p className="text-sm">{t.checkinBody(formatClock(view.checkinSecondsLeft))}</p>
           <button type="button" className="btn btn-secondary mt-3" onClick={() => void checkin()}>
             {t.checkinButton}
@@ -192,7 +196,7 @@ function SyncDock({ roomId, sync, together }: { roomId: string; sync: SyncSettin
       <StatusLine value={statusLine} onChange={setStatusLine} />
       <ErrorText code={error} />
       {waitingUntil !== null ? (
-        <div className="mt-5 text-center" role="status">
+        <div className="mt-5 text-center">
           <p className="font-bold">{copy.sync.waiting(toNext)}</p>
           <button type="button" className="btn btn-secondary mt-3" onClick={cancel}>
             {copy.sync.cancelWait}
@@ -250,7 +254,7 @@ export function TimerDock({
     })
 
   return (
-    <section aria-label="Timer" className="card card-raised p-5 md:p-6">
+    <section aria-label={t.timerLabel} className="card card-raised p-5 md:p-6">
       {radio && radio.kind !== 'silence' && (
         <div className="-mt-1 mb-3 flex justify-end">
           <RadioPill roomId={roomId} station={radio} />
@@ -263,13 +267,15 @@ export function TimerDock({
       )}
       {!sync && (phase.name === 'idle' || phase.name === 'ended') && (
         <div>
-          <div role="radiogroup" aria-label="Timer type" className="grid grid-cols-2 gap-2">
+          <div role="radiogroup" aria-label={t.typeLabel} className="grid grid-cols-2 gap-2">
             {(['pomodoro', 'stopwatch'] as const).map((k) => (
               <button
                 key={k}
                 type="button"
                 role="radio"
                 aria-checked={kind === k}
+                tabIndex={kind === k ? 0 : -1}
+                onKeyDown={rovingKeys}
                 className={`chip ${kind === k ? 'chip-on' : ''}`}
                 onClick={() => setKind(k)}
               >
@@ -278,13 +284,15 @@ export function TimerDock({
             ))}
           </div>
           {kind === 'pomodoro' && (
-            <div role="radiogroup" aria-label="Focus length" className="mt-3 grid grid-cols-3 gap-2">
+            <div role="radiogroup" aria-label={t.lengthLabel} className="mt-3 grid grid-cols-3 gap-2">
               {FOCUS_CHOICES.map((m) => (
                 <button
                   key={m}
                   type="button"
                   role="radio"
                   aria-checked={focusMinutes === m}
+                  tabIndex={focusMinutes === m ? 0 : -1}
+                  onKeyDown={rovingKeys}
                   className={`chip ${focusMinutes === m ? 'chip-on' : ''}`}
                   onClick={() => setFocusMinutes(m)}
                 >

@@ -117,7 +117,7 @@ export function MemberSheet({
     <Dialog title={member.display_name} onClose={onClose} labelledBy="member-title">
       <div className="mt-2 flex items-center gap-4">
         <Bean avatar={member.avatar} size={64} title={member.display_name} />
-        <div>
+        <div className="min-w-0">
           <p className="text-muted">@{member.handle}</p>
           {member.role !== 'member' && (
             <p className="mt-1 inline-block rounded-full border-2 border-line bg-accent px-2 text-sm font-bold text-on-accent">
@@ -129,7 +129,7 @@ export function MemberSheet({
           )}
         </div>
       </div>
-      {statusLine && <p className="mt-3 rounded-md bg-surface-2 p-2 text-sm">{statusLine}</p>}
+      {statusLine && <p className="mt-3 rounded-md bg-surface-2 p-2 text-sm break-words">{statusLine}</p>}
 
       {!isMe && (
         <div className="mt-5 flex flex-wrap gap-2">
@@ -143,8 +143,9 @@ export function MemberSheet({
             disabled={nudgeMuted}
             title={nudgeMuted ? copy.sync.nudgeMuted : undefined}
           >
-            {copy.room.nudge} 👋
+            {copy.room.nudge} <span aria-hidden="true">👋</span>
           </button>
+          {nudgeMuted && <p className="w-full text-sm text-muted">{copy.sync.nudgeMuted}</p>}
           {blocked.has(member.user_id) ? (
             <button type="button" className="btn btn-secondary" onClick={() => void toggleBlock(false)}>
               {copy.room.unblock}
@@ -189,9 +190,10 @@ export function MemberSheet({
               <button
                 type="button"
                 className="btn btn-secondary text-sm"
-                onClick={() =>
-                  void run('transfer_ownership', { p_room_id: roomId, p_user_id: member.user_id })
-                }
+                onClick={() => {
+                  if (window.confirm(t.makeOwnerConfirm(member.display_name)))
+                    void run('transfer_ownership', { p_room_id: roomId, p_user_id: member.user_id })
+                }}
               >
                 {t.makeOwner}
               </button>

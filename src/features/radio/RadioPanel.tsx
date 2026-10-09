@@ -1,4 +1,5 @@
 import { PauseIcon, PlayIcon, SpeakerIcon } from '../../components/icons'
+import { rovingKeys } from '../../components/roving'
 import { copy } from '../../content/copy'
 import { STATION_EPOCH_MS, STATIONS } from '../../content/stations'
 import { formatClock } from '../../core/time'
@@ -20,7 +21,6 @@ export function RadioPill({ roomId, station }: { roomId: string; station: Statio
       className={`pill gap-1.5 ${on ? 'bg-accent text-on-accent' : ''}`}
       onClick={() => (on ? pause() : void play(roomId, station))}
       aria-label={t.pill(station.name, on)}
-      aria-pressed={on}
     >
       <span aria-hidden="true">{station.emoji}</span>
       {station.name}
@@ -138,6 +138,8 @@ export function RadioPanel({
                 type="button"
                 role="radio"
                 aria-checked={s.id === station.id}
+                tabIndex={s.id === station.id ? 0 : -1}
+                onKeyDown={rovingKeys}
                 className={`chip justify-start gap-2 ${s.id === station.id ? 'chip-on' : ''}`}
                 disabled={!canPick || !playable}
                 onClick={() => {

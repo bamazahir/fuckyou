@@ -1,4 +1,5 @@
 import { copy } from '../../content/copy'
+import { rovingKeys } from '../../components/roving'
 import { THEME_PREVIEWS } from '../../content/themes'
 import { THEME_IDS, type ThemeMode } from '../../core/theme'
 import { useTheme } from '../../stores/theme'
@@ -25,8 +26,10 @@ export function ThemePicker() {
               type="button"
               role="radio"
               aria-checked={theme === id}
+              tabIndex={theme === id ? 0 : -1}
+              onKeyDown={rovingKeys}
               onClick={() => set({ theme: id })}
-              className={`overflow-hidden rounded-[12px] border-2 border-line text-left ${theme === id ? 'outline-3 outline-offset-2 outline-accent' : ''}`}
+              className={`overflow-hidden rounded-[12px] border-2 border-line text-left ${theme === id ? 'outline-3 outline-offset-2 outline-line' : ''}`}
             >
               <span className="flex h-16 items-end gap-1.5 p-2" style={{ backgroundColor: p.bg }}>
                 <span
@@ -45,13 +48,15 @@ export function ThemePicker() {
           )
         })}
       </div>
-      <div role="radiogroup" aria-label="Light or dark" className="mt-4 grid grid-cols-3 gap-2">
+      <div role="radiogroup" aria-label={copy.theme.lightOrDark} className="mt-4 grid grid-cols-3 gap-2">
         {MODES.map((m) => (
           <button
             key={m}
             type="button"
             role="radio"
             aria-checked={mode === m}
+            tabIndex={mode === m ? 0 : -1}
+            onKeyDown={rovingKeys}
             className={`chip ${mode === m ? 'chip-on' : ''}`}
             onClick={() => set({ mode: m })}
           >

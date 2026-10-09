@@ -22,12 +22,16 @@ export function DonateDialog({
   const toast = useUi((s) => s.toast)
   const [amount, setAmount] = useState('50')
   const [error, setError] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
   const have = shownBalance(balance ?? 0).coins
   const n = Math.floor(Number(amount))
 
   async function give(e: FormEvent) {
     e.preventDefault()
+    if (busy) return
+    setBusy(true)
     const err = await donate(roomId, n)
+    setBusy(false)
     if (err) return setError(err)
     toast(t.given(n))
     onDone()
@@ -58,7 +62,7 @@ export function DonateDialog({
           <button type="button" className="btn btn-secondary" onClick={onClose}>
             {copy.home.cancel}
           </button>
-          <button type="submit" className="btn btn-primary flex-1" disabled={!(n >= 1 && n <= have)}>
+          <button type="submit" className="btn btn-primary flex-1" disabled={busy || !(n >= 1 && n <= have)}>
             {t.give}
           </button>
         </div>

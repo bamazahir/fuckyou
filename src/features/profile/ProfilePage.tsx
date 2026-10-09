@@ -82,7 +82,7 @@ export function ProfilePage() {
                     {s.status === 'voided' && <span className="ml-2 text-danger">{t.voided}</span>}
                   </p>
                   <p className="text-sm text-muted">{dateFmt.format(new Date(s.started_at))}</p>
-                  {s.note && <p className="mt-1 text-sm">{s.note}</p>}
+                  {s.note && <p className="mt-1 text-sm break-words">{s.note}</p>}
                 </div>
                 {canNote && (
                   <button type="button" className="btn btn-secondary text-sm" onClick={() => setNoteFor(s)}>

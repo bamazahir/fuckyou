@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { rovingKeys } from '../../components/roving'
 import { Loading, LoadFailed } from '../../components/LoadFailed'
 import { Link, useNavigate } from 'react-router-dom'
 import { Dialog } from '../../components/Dialog'
@@ -91,6 +92,7 @@ export function SharedRoom({ room }: { room: MyRoom }) {
   const [sheet, setSheet] = useState<'menu' | 'settings' | 'leave' | 'donate' | null>(null)
   const [membersKey, setMembersKey] = useState(0)
   const [error, setError] = useState<string | null>(null)
+  const [leaving, setLeaving] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -187,7 +189,9 @@ export function SharedRoom({ room }: { room: MyRoom }) {
   }
 
   async function doLeave() {
+    setLeaving(true)
     const err = await leave(room.id)
+    setLeaving(false)
     if (err) return setError(err)
     navigate('/', { replace: true })
   }
@@ -280,8 +284,9 @@ export function SharedRoom({ room }: { room: MyRoom }) {
                 type="button"
                 className={`btn min-w-12 text-xl ${sharedPhase?.phase === 'break' ? 'btn-primary' : 'btn-secondary'}`}
                 onClick={() => react(emoji)}
+                aria-label={t.reactionLabel(emoji)}
               >
-                {emoji}
+                <span aria-hidden="true">{emoji}</span>
               </button>
             ))}
           </div>
@@ -297,6 +302,8 @@ export function SharedRoom({ room }: { room: MyRoom }) {
                   type="button"
                   role="tab"
                   aria-selected={tab === k}
+                  tabIndex={tab === k ? 0 : -1}
+                  onKeyDown={rovingKeys}
                   className={`chip ${tab === k ? 'chip-on' : ''}`}
                   onClick={() => setTab(k)}
                 >
@@ -304,7 +311,7 @@ export function SharedRoom({ room }: { room: MyRoom }) {
                 </button>
               ))}
             </div>
-            <div className="mt-4">
+            <div className="mt-4" role="tabpanel" aria-label={t.tabs[tab]}>
               {tab === 'leaderboard' ? (
                 <Leaderboard
                   roomId={room.id}
@@ -346,7 +353,7 @@ export function SharedRoom({ room }: { room: MyRoom }) {
             byId.get(openMember.user_id)?.state === 'focus' ? byId.get(openMember.user_id)?.status_line : null
           }
           onNudge={() => {
-            if (nudge(openMember.user_id)) toast(`${copy.room.nudge} → ${openMember.display_name}`)
+            if (nudge(openMember.user_id)) toast(copy.room.nudgeSent(openMember.display_name))
           }}
           onClose={() => setOpenMember(null)}
           onChanged={() => {
@@ -379,9 +386,11 @@ export function SharedRoom({ room }: { room: MyRoom }) {
                 <span className="text-sm text-muted">{copy.push.roomToggleHint}</span>
               </span>
             </label>
-            <p className="inline-flex items-center gap-2 font-bold" data-testid="room-bank">
-              <CoinIcon /> {copy.coins.bank(info?.bank ?? 0)}
-            </p>
+            {info && (
+              <p className="inline-flex items-center gap-2 font-bold" data-testid="room-bank">
+                <CoinIcon /> {copy.coins.bank(info.bank)}
+              </p>
+            )}
             <button
               type="button"
               className="btn btn-secondary justify-start"
@@ -445,7 +454,12 @@ export function SharedRoom({ room }: { room: MyRoom }) {
             <button type="button" className="btn btn-secondary" onClick={() => setSheet(null)}>
               {copy.home.cancel}
             </button>
-            <button type="button" className="btn btn-primary flex-1" onClick={() => void doLeave()}>
+            <button
+              type="button"
+              className="btn btn-primary flex-1 text-danger"
+              onClick={() => void doLeave()}
+              disabled={leaving}
+            >
               {t.leave}
             </button>
           </div>
@@ -496,11 +510,12 @@ function MembersList({
           {clock && (
             <span
               className={`h-3 w-3 shrink-0 rounded-full border-2 border-line ${clock.focusing ? 'bg-good' : 'bg-rest'}`}
+              role="img"
               aria-label={clock.focusing ? t.focusingLabel : t.onBreak}
             />
           )}
           <span className="min-w-0">
-            <span className="font-bold">{m.display_name}</span>{' '}
+            <span className="font-bold break-words">{m.display_name}</span>{' '}
             <span className="text-sm text-muted">@{m.handle}</span>
             {l?.state === 'focus' && l.status_line && (
               <span className="block truncate text-sm text-muted">{l.status_line}</span>

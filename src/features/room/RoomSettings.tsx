@@ -131,7 +131,11 @@ export function RoomSettings({
         )}
       </fieldset>
       <div className="mt-5">
-        <button type="button" className="btn btn-secondary" onClick={() => void newLink()}>
+        <button
+          type="button"
+          className="btn btn-secondary"
+          onClick={() => window.confirm(t.newLinkConfirm) && void newLink()}
+        >
           {t.newLink}
         </button>
         <p className="mt-1 text-sm text-muted">{t.newLinkHint}</p>
@@ -143,7 +147,7 @@ export function RoomSettings({
         {(reports ?? []).map((r) => (
           <li key={r.id} className="card p-3">
             <p className="font-bold">{copy.reportSheet.reasons[r.reason] ?? r.reason}</p>
-            {r.note && <p>{r.note}</p>}
+            {r.note && <p className="break-words">{r.note}</p>}
           </li>
         ))}
       </ul>

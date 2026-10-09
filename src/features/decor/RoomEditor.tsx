@@ -52,6 +52,7 @@ export function RoomEditor({
     placing && placing.replacing !== null ? layout.filter((_, i) => i !== placing.replacing) : layout
   const ghost = placing && def ? placement(def, placing.cell, placing.rot, size) : null
   const ghostOk = ghost ? canPlace(shown, ghost, size, CATALOG) : false
+  const changed = JSON.stringify(layout) !== JSON.stringify(initial)
   const left = useMemo(() => remaining(owned, layout), [owned, layout])
   const tray = [...left.entries()].filter(([id, n]) => n > 0 && CATALOG.has(id))
 
@@ -153,7 +154,11 @@ export function RoomEditor({
       <header className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-display text-3xl font-bold">{title}</h1>
         <div className="flex gap-2">
-          <button type="button" className="btn btn-secondary" onClick={onDone}>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => (!changed || window.confirm(t.discard)) && onDone()}
+          >
             {t.cancel}
           </button>
           <button
@@ -179,13 +184,12 @@ export function RoomEditor({
           edit={edit}
           fallback={null}
         />
-        <div
-          className="flex flex-wrap items-center gap-2 border-t-2 border-line bg-surface-2 px-4 py-2"
-          role="toolbar"
-        >
+        <div className="flex flex-wrap items-center gap-2 border-t-2 border-line bg-surface-2 px-4 py-2">
           {placing ? (
             <>
-              <span className="mr-auto text-sm">{ghostOk ? t.placeHint : t.blocked}</span>
+              <span className="mr-auto text-sm" role="status">
+                {ghostOk ? t.placeHint : t.blocked}
+              </span>
               <button type="button" className="btn btn-secondary" onClick={rotate}>
                 {t.rotate}
               </button>
@@ -220,7 +224,7 @@ export function RoomEditor({
           {trayTitle}
         </h2>
         {tray.length === 0 && <p className="mt-1 text-sm text-muted">{t.trayEmpty}</p>}
-        <ul className="mt-2 flex gap-2 overflow-x-auto pb-1">
+        <ul className="mt-2 flex gap-2 overflow-x-auto overscroll-x-contain pb-1">
           {tray.map(([id, n]) => {
             const item = CATALOG.get(id)
             if (!item) return null
@@ -232,6 +236,7 @@ export function RoomEditor({
                   className={`card relative flex w-24 flex-col items-center p-1 text-xs ${active ? 'card-raised bg-accent text-on-accent' : ''}`}
                   onClick={() => pick(id)}
                   aria-label={`${item.name}, ${n}`}
+                  aria-pressed={active}
                 >
                   <ItemThumb itemId={id} name={item.name} size={72} />
                   <span className="w-full truncate">{item.name}</span>

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { rovingKeys } from '../../components/roving'
 import { LoadFailed } from '../../components/LoadFailed'
 import { Bean } from '../../components/Bean'
 import { copy } from '../../content/copy'
@@ -43,6 +44,8 @@ export function Leaderboard({
             type="button"
             role="tab"
             aria-selected={tab === t}
+            tabIndex={tab === t ? 0 : -1}
+            onKeyDown={rovingKeys}
             className={`chip px-1 text-sm ${tab === t ? 'chip-on' : ''}`}
             onClick={() => setTab(t)}
           >
@@ -70,7 +73,11 @@ export function Leaderboard({
                 <span className="ml-1 text-sm font-normal text-muted">({copy.room.you})</span>
               )}
               {r.is_present && (
-                <span className="ml-2 inline-block h-2 w-2 rounded-full bg-good" aria-label="studying now" />
+                <span
+                  className="ml-2 inline-block h-2 w-2 rounded-full bg-good"
+                  role="img"
+                  aria-label={copy.room.studyingNow}
+                />
               )}
             </span>
             <span className="font-display font-bold tabular-nums">{shortDuration(r.seconds)}</span>
