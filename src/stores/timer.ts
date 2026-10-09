@@ -25,7 +25,8 @@ interface TimerState {
   end: () => Promise<void>
   checkin: () => Promise<void>
   submitNote: (sessionId: string, note: string) => Promise<boolean>
-  afterEnded: () => Promise<void>
+  /** `shared`: the room runs a shared pomodoro, whose break the dock shows instead. */
+  afterEnded: (opts?: { shared?: boolean }) => Promise<void>
   skipBreak: () => void
 }
 
@@ -89,10 +90,10 @@ export const useTimer = create<TimerState>((set, get) => ({
   },
 
   /** After the end sheet: pomodoros go to a break, stopwatches back to idle. */
-  afterEnded: async () => {
+  afterEnded: async (opts) => {
     const { phase } = get()
     if (phase.name !== 'ended') return
-    if (phase.session.kind !== 'pomodoro') return set({ phase: { name: 'idle' } })
+    if (phase.session.kind !== 'pomodoro' || opts?.shared) return set({ phase: { name: 'idle' } })
     const { count } = await supabase
       .from('sessions')
       .select('id', { count: 'exact', head: true })

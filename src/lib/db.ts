@@ -33,7 +33,13 @@ export interface Profile {
   country: string
   age_bracket: Exclude<AgeBracket, 'under_13'>
   consent_status: 'not_required' | 'pending' | 'granted'
-  settings: { focusMinutes?: number; theme?: string; mode?: string }
+  settings: {
+    focusMinutes?: number
+    theme?: string
+    mode?: string
+    /** Push types switched off (default on), read by the server when queueing (SPEC §5.5). */
+    notify?: { phase_end?: boolean; checkin?: boolean }
+  }
   is_admin: boolean
   created_at: string
 }

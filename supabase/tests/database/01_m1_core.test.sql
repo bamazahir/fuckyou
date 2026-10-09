@@ -80,7 +80,7 @@ select throws_ok(
   $$ select public.start_session((select id from public.rooms where owner_id = '00000000-0000-0000-0000-0000000000f6'), 'stopwatch') $$,
   'room_not_allowed', 'you cannot study in someone else''s personal room');
 select throws_ok($$ select public.start_session((select id from public.rooms limit 1), 'pomodoro') $$,
-  '23514', null, 'a pomodoro needs a planned length');
+  '22023', null, 'a pomodoro needs a planned length');
 select throws_ok($$ select public.start_session((select id from public.rooms limit 1), 'stopwatch', 1500) $$,
   'stopwatch_has_no_plan', 'a stopwatch has no planned length');
 
@@ -94,6 +94,9 @@ select throws_ok($$ insert into public.sessions (user_id, room_id, sitting_id, k
 
 -- Pretend the pomodoro started 30 minutes ago, then let tick() finish it.
 select tests.act_as_service();
+-- Phase-end pushes are only queued for people with a device to send them to (M3).
+insert into public.push_subscriptions (user_id, endpoint, p256dh, auth)
+values ('00000000-0000-0000-0000-0000000000a1', 'https://fcm.googleapis.com/fcm/send/a1', repeat('A', 87), repeat('B', 22));
 update public.sessions set started_at = now() - interval '30 minutes'
  where user_id = '00000000-0000-0000-0000-0000000000a1' and status = 'active';
 select is((private.tick() ->> 'finished')::int, 1, 'tick finishes an overdue pomodoro');

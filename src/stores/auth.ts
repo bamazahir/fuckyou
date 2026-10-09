@@ -2,6 +2,7 @@ import type { Session } from '@supabase/supabase-js'
 import { create } from 'zustand'
 import type { Avatar, Profile } from '../lib/db'
 import { isConfigured, supabase } from '../lib/supabase'
+import { usePush } from './push'
 import { useTheme } from './theme'
 
 export type AuthStatus =
@@ -19,6 +20,8 @@ interface AuthState {
   signOut: () => Promise<void>
   /** Saves the bean colors (profiles.avatar is user-editable, SPEC §8.2). Returns an error code or null. */
   updateAvatar: (avatar: Avatar) => Promise<string | null>
+  /** Merges into profiles.settings (user-editable). Returns an error code or null. */
+  updateSettings: (patch: Partial<Profile['settings']>) => Promise<string | null>
 }
 
 let initialized = false
@@ -74,7 +77,25 @@ export const useAuth = create<AuthState>((set, get) => ({
     return null
   },
 
+  updateSettings: async (patch) => {
+    const profile = get().profile
+    if (!profile) return 'not_signed_in'
+    const settings = { ...profile.settings, ...patch }
+    set({ profile: { ...profile, settings } }) // optimistic: toggles respond instantly
+    const { error } = await supabase.from('profiles').update({ settings }).eq('id', profile.id)
+    if (error) {
+      set({ profile })
+      return 'generic'
+    }
+    return null
+  },
+
   signOut: async () => {
+    // This device shouldn't keep getting the account's notifications (ship-audit §C).
+    await usePush
+      .getState()
+      .disable()
+      .catch(() => undefined)
     await supabase.auth.signOut()
     set({ session: null, profile: null, personalRoomId: null, status: 'signed_out' })
   },

@@ -20,6 +20,7 @@ const SECTIONS: { h: string; p: string[] }[] = [
       'The rooms you are in, people you block, and reports you send.',
       'Simple usage counts (for example “a session was completed”), with no free text in them.',
       'If a parent agreed for you: when they agreed, and a scrambled (hashed) copy of their email address.',
+      'If you turn notifications on: an address from your browser’s notification service for each device, and which rooms you want “room is active” alerts for. Turning notifications off or signing out on a device removes its address.',
     ],
   },
   {
@@ -33,7 +34,7 @@ const SECTIONS: { h: string; p: string[] }[] = [
   {
     h: 'Services we use',
     p: [
-      'Supabase stores the data and runs sign-in. Vercel serves the app. Resend sends the parent-consent email. Fonts and everything else are served by Studyroom itself; there are no trackers or analytics companies.',
+      'Supabase stores the data and runs sign-in. Vercel serves the app. Resend sends the parent-consent email. Notifications travel through your browser’s own service (Google, Apple, Mozilla or Microsoft) and are encrypted so only your device can read them. Fonts and everything else are served by Studyroom itself; there are no trackers or analytics companies.',
     ],
   },
   {

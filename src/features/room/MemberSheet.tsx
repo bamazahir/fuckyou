@@ -26,6 +26,7 @@ export function MemberSheet({
   myRole,
   meId,
   onNudge,
+  nudgeMuted = false,
   onClose,
   onChanged,
 }: {
@@ -34,6 +35,8 @@ export function MemberSheet({
   myRole: RoomMember['role']
   meId: string
   onNudge: () => void
+  /** During a shared focus nobody gets nudged (SPEC §6.2.1). */
+  nudgeMuted?: boolean
   onClose: () => void
   onChanged: () => void
 }) {
@@ -94,7 +97,13 @@ export function MemberSheet({
 
       {!isMe && (
         <div className="mt-5 flex flex-wrap gap-2">
-          <button type="button" className="btn btn-primary" onClick={onNudge}>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={onNudge}
+            disabled={nudgeMuted}
+            title={nudgeMuted ? copy.sync.nudgeMuted : undefined}
+          >
             {copy.room.nudge} 👋
           </button>
           {blocked.has(member.user_id) ? (

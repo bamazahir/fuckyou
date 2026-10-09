@@ -9,10 +9,12 @@ import { copy } from '../../content/copy'
 import { DEFAULT_SHARED, SHARED_SIZE } from '../../content/layouts'
 import { joinOrder, liveClock } from '../../core/live'
 import { roomBanner, shortDuration } from '../../core/room'
+import { syncPhase } from '../../core/sync'
 import type { LiveMember, MyRoom, RoomMember } from '../../lib/db'
 import type { SceneAvatar } from '../../scene/IsoRoom'
-import { supabase } from '../../lib/supabase'
+import { rpcErrorCode, supabase } from '../../lib/supabase'
 import { useAuth } from '../../stores/auth'
+import { usePush } from '../../stores/push'
 import { useRooms } from '../../stores/rooms'
 import { useTimer } from '../../stores/timer'
 import { useUi } from '../../stores/ui'
@@ -23,6 +25,7 @@ import { NoteDialog } from './NoteDialog'
 import { RoomSettings } from './RoomSettings'
 import { TimerDock } from './TimerDock'
 import { RoomView } from './RoomView'
+import { useRoomInfo } from './useRoomInfo'
 import { REACTIONS, useRoomChannel } from './useRoomChannel'
 
 const t = copy.room
@@ -59,8 +62,12 @@ export function SharedRoom({ room }: { room: MyRoom }) {
   const { phase, afterEnded } = useTimer()
   const { leave } = useRooms()
   const toast = useUi((s) => s.toast)
-  const { live, online, bubbles, removed, refresh, react, nudge } = useRoomChannel(room.id)
+  const { live, online, bubbles, removed, refresh, react, nudge, syncKey } = useRoomChannel(room.id)
+  const { info, refetch: refetchInfo } = useRoomInfo(room.id, syncKey)
+  const sync = info?.sync ?? null
+  const [notifyOn, setNotifyOn] = useState<boolean | null>(null)
   const now = useNow(true)
+  const sharedPhase = sync ? syncPhase(sync, now) : null
   const [tab, setTab] = useState<'leaderboard' | 'members'>('leaderboard')
   const [members, setMembers] = useState<RoomMember[] | null>(null)
   const [openMember, setOpenMember] = useState<RoomMember | null>(null)
@@ -133,6 +140,18 @@ export function SharedRoom({ room }: { room: MyRoom }) {
       // share sheet dismissed
     }
     setSheet(null)
+  }
+
+  async function toggleNotify(on: boolean) {
+    setNotifyOn(on)
+    const { error: err } = await supabase.rpc('set_room_notify', { p_room_id: room.id, p_on: on })
+    if (err) {
+      setNotifyOn(null)
+      return setError(rpcErrorCode(err))
+    }
+    refetchInfo()
+    // The toggle is saved either way; pushes only reach devices that have them turned on.
+    if (on) void usePush.getState().offer('room')
   }
 
   async function doLeave() {
@@ -219,12 +238,13 @@ export function SharedRoom({ room }: { room: MyRoom }) {
           {onlineIdle.length > 0 && (
             <p className="text-sm text-on-bg-muted">{t.onlineIdle(onlineIdle.map((m) => m.display_name))}</p>
           )}
+          {sharedPhase?.phase === 'break' && <p className="font-bold">{copy.sync.breakHint}</p>}
           <div className="flex flex-wrap gap-2" role="group" aria-label={t.reactions}>
             {REACTIONS.map((emoji) => (
               <button
                 key={emoji}
                 type="button"
-                className="btn btn-secondary min-w-12 text-xl"
+                className={`btn min-w-12 text-xl ${sharedPhase?.phase === 'break' ? 'btn-primary' : 'btn-secondary'}`}
                 onClick={() => react(emoji)}
               >
                 {emoji}
@@ -234,7 +254,7 @@ export function SharedRoom({ room }: { room: MyRoom }) {
         </section>
 
         <div className="space-y-5">
-          <TimerDock roomId={room.id} />
+          <TimerDock roomId={room.id} sync={sync} together={studyingIds.length} />
           <section className="card p-4">
             <div role="tablist" className="grid grid-cols-2 gap-2">
               {(['leaderboard', 'members'] as const).map((k) => (
@@ -271,6 +291,7 @@ export function SharedRoom({ room }: { room: MyRoom }) {
           member={openMember}
           myRole={myRole}
           meId={me.id}
+          nudgeMuted={sharedPhase?.phase === 'focus'}
           onNudge={() => {
             if (nudge(openMember.user_id)) toast(`${copy.room.nudge} → ${openMember.display_name}`)
           }}
@@ -292,6 +313,18 @@ export function SharedRoom({ room }: { room: MyRoom }) {
             >
               {t.copyLink}
             </button>
+            <label className="card flex items-start gap-3 p-3">
+              <input
+                type="checkbox"
+                className="mt-1 h-5 w-5 accent-[var(--accent)]"
+                checked={notifyOn ?? info?.notifyActive ?? false}
+                onChange={(e) => void toggleNotify(e.target.checked)}
+              />
+              <span>
+                <span className="block font-bold">{copy.push.roomToggle}</span>
+                <span className="text-sm text-muted">{copy.push.roomToggleHint}</span>
+              </span>
+            </label>
             {(myRole === 'owner' || myRole === 'mod') && (
               <button
                 type="button"
@@ -312,7 +345,13 @@ export function SharedRoom({ room }: { room: MyRoom }) {
         </Dialog>
       )}
       {sheet === 'settings' && (
-        <RoomSettings roomId={room.id} name={room.name} onClose={() => setSheet(null)} />
+        <RoomSettings
+          roomId={room.id}
+          name={room.name}
+          sync={sync}
+          onSyncChanged={refetchInfo}
+          onClose={() => setSheet(null)}
+        />
       )}
       {sheet === 'leave' && (
         <Dialog title={t.leave} onClose={() => setSheet(null)} labelledBy="leave-title">
@@ -335,7 +374,7 @@ export function SharedRoom({ room }: { room: MyRoom }) {
           sessionId={phase.session.id}
           focusSeconds={phase.session.focus_seconds ?? 0}
           onClose={() => {
-            void afterEnded()
+            void afterEnded({ shared: sync !== null })
             refresh()
           }}
         />

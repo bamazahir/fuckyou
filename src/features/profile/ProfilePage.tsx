@@ -9,6 +9,7 @@ import { useAuth } from '../../stores/auth'
 import { NoteDialog } from '../room/NoteDialog'
 import { useMyHistory } from '../stats/useMyHistory'
 import { AccountSection } from './AccountSection'
+import { NotificationSettings } from './NotificationSettings'
 import { ThemePicker } from './ThemePicker'
 import { WeekChart } from './WeekChart'
 
@@ -93,6 +94,7 @@ export function ProfilePage() {
       </section>
 
       <ThemePicker />
+      <NotificationSettings />
       <AccountSection />
 
       {noteFor && (

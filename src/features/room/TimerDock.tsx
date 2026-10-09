@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ErrorText } from '../../components/Screen'
 import { useNow } from '../../components/useNow'
 import { copy } from '../../content/copy'
@@ -8,6 +8,8 @@ import type { SessionRow } from '../../lib/db'
 import { useAuth } from '../../stores/auth'
 import { useTimer } from '../../stores/timer'
 import { shortDuration } from '../../core/room'
+import { joinAction, syncPhase, type SyncSettings } from '../../core/sync'
+import { usePush } from '../../stores/push'
 import { useMyHistory } from '../stats/useMyHistory'
 
 const t = copy.room
@@ -44,7 +46,7 @@ function ProgressRing({ progress }: { progress: number }) {
   )
 }
 
-function Running({ session }: { session: SessionRow }) {
+function Running({ session, together }: { session: SessionRow; together: boolean }) {
   const now = useNow(true)
   const { end, checkin, busy } = useTimer()
   const view = timerView(toActive(session), now)
@@ -60,7 +62,7 @@ function Running({ session }: { session: SessionRow }) {
       <div className="relative grid h-60 w-60 place-items-center">
         {view.progress !== null && <ProgressRing progress={view.progress} />}
         <div className="text-center">
-          <p className="text-sm font-bold text-muted">{t.focusing}</p>
+          <p className="text-sm font-bold text-muted">{together ? copy.sync.badge : t.focusing}</p>
           <p className="font-display text-6xl font-bold tabular-nums" aria-live="off" data-testid="timer">
             {big}
           </p>
@@ -114,7 +116,120 @@ function Break({
   )
 }
 
-export function TimerDock({ roomId }: { roomId: string }) {
+function StatusLine({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <>
+      <label htmlFor="status-line" className="mt-5 block text-sm font-bold">
+        {t.statusLabel}
+      </label>
+      <input
+        id="status-line"
+        maxLength={60}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={t.statusPlaceholder}
+        className="field mt-1"
+      />
+    </>
+  )
+}
+
+/** Shared pomodoro (SPEC §6.2.1): one cycle for the whole room; Start joins the current phase. */
+function SyncDock({ roomId, sync, together }: { roomId: string; sync: SyncSettings; together: number }) {
+  const { busy, error, start } = useTimer()
+  const now = useNow(true)
+  const [statusLine, setStatusLine] = useState('')
+  const [waitingUntil, setWaitingUntil] = useState<number | null>(null)
+  const timer = useRef<number | null>(null)
+  const p = syncPhase(sync, now)
+  const action = joinAction(p)
+
+  useEffect(
+    () => () => {
+      if (timer.current !== null) window.clearTimeout(timer.current)
+    },
+    [],
+  )
+
+  const joinNow = () => {
+    void start(roomId, 'pomodoro', null, statusLine).then(() => {
+      if (!useTimer.getState().error) void usePush.getState().offer('timer')
+    })
+  }
+  // Wait for the next shared focus, then start automatically (while this screen is open).
+  const joinNext = () => {
+    setWaitingUntil(p.nextFocusAtMs)
+    timer.current = window.setTimeout(
+      () => {
+        timer.current = null
+        setWaitingUntil(null)
+        joinNow()
+      },
+      Math.max(0, p.nextFocusAtMs - now + 300),
+    )
+  }
+  const cancel = () => {
+    if (timer.current !== null) window.clearTimeout(timer.current)
+    timer.current = null
+    setWaitingUntil(null)
+  }
+
+  const toNext = formatClock(Math.ceil((p.nextFocusAtMs - now) / 1000))
+  const clock = formatClock(Math.ceil(p.left))
+  return (
+    <div>
+      <p className="pill">{copy.sync.badge}</p>
+      <p className="mt-3 text-center font-bold" data-testid="sync-phase">
+        {p.phase === 'focus' ? copy.sync.focus(clock, together) : copy.sync.breakTogether(clock)}
+      </p>
+      <p
+        className={`font-display mt-2 text-center text-6xl font-bold tabular-nums ${p.phase === 'break' ? 'text-rest' : ''}`}
+      >
+        {clock}
+      </p>
+      <StatusLine value={statusLine} onChange={setStatusLine} />
+      <ErrorText code={error} />
+      {waitingUntil !== null ? (
+        <div className="mt-5 text-center" role="status">
+          <p className="font-bold">{copy.sync.waiting(toNext)}</p>
+          <button type="button" className="btn btn-secondary mt-3" onClick={cancel}>
+            {copy.sync.cancelWait}
+          </button>
+        </div>
+      ) : action === 'join_now' ? (
+        <button
+          type="button"
+          className="btn btn-primary mt-5 w-full text-lg"
+          onClick={joinNow}
+          disabled={busy}
+        >
+          {copy.sync.joinNow}
+        </button>
+      ) : (
+        <button
+          type="button"
+          className="btn btn-primary mt-5 w-full text-lg"
+          onClick={joinNext}
+          disabled={busy}
+        >
+          {copy.sync.joinNext(toNext)}
+        </button>
+      )}
+    </div>
+  )
+}
+
+export function TimerDock({
+  roomId,
+  sync = null,
+  together = 0,
+}: {
+  roomId: string
+  /** Set in rooms that run a shared pomodoro. */
+  sync?: SyncSettings | null
+  /** How many are focusing in the room right now (for the shared-cycle line). */
+  together?: number
+}) {
   const { phase, busy, error, start } = useTimer()
   const savedFocus = useAuth((s) => s.profile?.settings.focusMinutes)
   const [kind, setKind] = useState<'pomodoro' | 'stopwatch'>('pomodoro')
@@ -124,15 +239,19 @@ export function TimerDock({ roomId }: { roomId: string }) {
   const [statusLine, setStatusLine] = useState('')
 
   const { stats } = useMyHistory()
-  const begin = () => void start(roomId, kind, kind === 'pomodoro' ? focusMinutes * 60 : null, statusLine)
+  const begin = () =>
+    void start(roomId, kind, kind === 'pomodoro' ? focusMinutes * 60 : null, statusLine).then(() => {
+      if (kind === 'pomodoro' && !useTimer.getState().error) void usePush.getState().offer('timer')
+    })
 
   return (
     <section aria-label="Timer" className="card card-raised p-5 md:p-6">
-      {phase.name === 'running' && <Running session={phase.session} />}
-      {phase.name === 'break' && (
+      {phase.name === 'running' && <Running session={phase.session} together={sync !== null} />}
+      {sync && phase.name !== 'running' && <SyncDock roomId={roomId} sync={sync} together={together} />}
+      {!sync && phase.name === 'break' && (
         <Break endsAtMs={phase.endsAtMs} minutes={phase.minutes} onStartNext={begin} />
       )}
-      {(phase.name === 'idle' || phase.name === 'ended') && (
+      {!sync && (phase.name === 'idle' || phase.name === 'ended') && (
         <div>
           <div role="radiogroup" aria-label="Timer type" className="grid grid-cols-2 gap-2">
             {(['pomodoro', 'stopwatch'] as const).map((k) => (
@@ -167,17 +286,7 @@ export function TimerDock({ roomId }: { roomId: string }) {
           <p className="font-display mt-5 text-center text-6xl font-bold tabular-nums">
             {kind === 'pomodoro' ? formatClock(focusMinutes * 60) : formatClock(0)}
           </p>
-          <label htmlFor="status-line" className="mt-5 block text-sm font-bold">
-            {t.statusLabel}
-          </label>
-          <input
-            id="status-line"
-            maxLength={60}
-            value={statusLine}
-            onChange={(e) => setStatusLine(e.target.value)}
-            placeholder={t.statusPlaceholder}
-            className="field mt-1"
-          />
+          <StatusLine value={statusLine} onChange={setStatusLine} />
           <ErrorText code={error} />
           <button
             type="button"

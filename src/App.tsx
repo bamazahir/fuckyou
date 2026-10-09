@@ -9,6 +9,8 @@ import { ConsentPage } from './features/consent/ConsentPage'
 import { InvitePage } from './features/invite/InvitePage'
 import { PrivacyPage } from './features/privacy/PrivacyPage'
 import { Toasts } from './components/Toasts'
+import { PushSheet } from './features/push/PushSheet'
+import { usePush } from './stores/push'
 import { pendingInvite, useRooms } from './stores/rooms'
 import { HomePage } from './features/home/HomePage'
 import { MyRoomPage } from './features/myroom/MyRoomPage'
@@ -99,6 +101,7 @@ export function App() {
     startClockSync()
     void useTimer.getState().loadActive()
     void useRooms.getState().loadBlocks()
+    void usePush.getState().refresh()
     void supabase.rpc('log_event', { p_name: 'app_open', p_props: {} })
     // Finish an invite that was opened before signing in.
     const code = pendingInvite.get()
@@ -117,6 +120,7 @@ export function App() {
     <>
       <RouterProvider router={router} />
       <Toasts />
+      {status === 'ready' && <PushSheet />}
     </>
   )
 }

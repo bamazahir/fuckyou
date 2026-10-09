@@ -97,7 +97,10 @@ export function HomePage() {
                 className="card card-raised flex min-h-28 flex-col justify-between gap-3 p-4 hover:-translate-y-0.5 transition-transform"
               >
                 <div className="flex items-start justify-between gap-3">
-                  <h3 className="font-display text-xl font-bold">{r.name}</h3>
+                  <div>
+                    <h3 className="font-display text-xl font-bold">{r.name}</h3>
+                    {r.sync_pomodoro && <span className="pill mt-1">{copy.sync.badge}</span>}
+                  </div>
                   <AvatarStack people={r.studying} size={28} />
                 </div>
                 <p className="flex items-center gap-2 text-sm">

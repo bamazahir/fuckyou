@@ -3,6 +3,7 @@ import { Dialog } from '../../components/Dialog'
 import { ErrorText } from '../../components/Screen'
 import { copy } from '../../content/copy'
 import { rpcErrorCode, supabase } from '../../lib/supabase'
+import type { SyncSettings } from '../../core/sync'
 import { useRooms } from '../../stores/rooms'
 
 const t = copy.settingsSheet
@@ -15,13 +16,22 @@ interface Report {
   created_at: string
 }
 
+const SYNC_LENGTHS = [
+  [25, 5],
+  [50, 10],
+] as const
+
 export function RoomSettings({
   roomId,
   name,
+  sync,
+  onSyncChanged,
   onClose,
 }: {
   roomId: string
   name: string
+  sync: SyncSettings | null
+  onSyncChanged: () => void
   onClose: () => void
 }) {
   const [newName, setNewName] = useState(name)
@@ -45,6 +55,17 @@ export function RoomSettings({
     if (err) return setError(rpcErrorCode(err))
     void reload()
     onClose()
+  }
+
+  async function setSync(params: {
+    p_sync_pomodoro?: boolean
+    p_sync_focus_s?: number
+    p_sync_break_s?: number
+  }) {
+    const { error: err } = await supabase.rpc('set_room', { p_room_id: roomId, ...params })
+    if (err) return setError(rpcErrorCode(err))
+    void reload()
+    onSyncChanged()
   }
 
   async function newLink() {
@@ -72,6 +93,38 @@ export function RoomSettings({
           </button>
         </div>
       </form>
+      <fieldset className="mt-5">
+        <legend className="text-sm font-bold">{copy.sync.settingsTitle}</legend>
+        <p className="text-sm text-muted">{copy.sync.settingsHint}</p>
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          {[true, false].map((on) => (
+            <button
+              key={String(on)}
+              type="button"
+              aria-pressed={(sync !== null) === on}
+              className={`chip ${(sync !== null) === on ? 'chip-on' : ''}`}
+              onClick={() => void setSync({ p_sync_pomodoro: on })}
+            >
+              {on ? copy.sync.on : copy.sync.off}
+            </button>
+          ))}
+        </div>
+        {sync && (
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            {SYNC_LENGTHS.map(([f, b]) => (
+              <button
+                key={f}
+                type="button"
+                aria-pressed={sync.focusS === f * 60 && sync.breakS === b * 60}
+                className={`chip ${sync.focusS === f * 60 && sync.breakS === b * 60 ? 'chip-on' : ''}`}
+                onClick={() => void setSync({ p_sync_focus_s: f * 60, p_sync_break_s: b * 60 })}
+              >
+                {copy.sync.lengths(f, b)}
+              </button>
+            ))}
+          </div>
+        )}
+      </fieldset>
       <div className="mt-5">
         <button type="button" className="btn btn-secondary" onClick={() => void newLink()}>
           {t.newLink}

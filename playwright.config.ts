@@ -21,7 +21,13 @@ export default defineConfig({
   webServer: {
     // Built against a fake Supabase origin that every spec intercepts (e2e/mock-supabase.ts).
     command: `pnpm build && pnpm preview --port ${PORT} --strictPort`,
-    env: { VITE_SUPABASE_URL: 'http://supabase.test', VITE_SUPABASE_ANON_KEY: 'e2e-anon-key' },
+    env: {
+      VITE_SUPABASE_URL: 'http://supabase.test',
+      VITE_SUPABASE_ANON_KEY: 'e2e-anon-key',
+      // A throwaway public key: push subscribe is stubbed in e2e/push.spec.ts.
+      VITE_VAPID_PUBLIC_KEY:
+        'BBOPQwJRHm_3e2N2nzGknTYXP67uPp9y8r5o9PUer20BcPM2aPXbsiWubU53bX8UC86Dmx7URGHTAZ-jj09CmYs',
+    },
     port: PORT,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

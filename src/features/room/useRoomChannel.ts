@@ -37,6 +37,7 @@ export function useRoomChannel(roomId: string) {
   const [bubbles, setBubbles] = useState<Bubble[]>([])
   const [removed, setRemoved] = useState(false)
   const [reloadKey, setReloadKey] = useState(0)
+  const [syncKey, setSyncKey] = useState(0)
   const channelRef = useRef<RealtimeChannel | null>(null)
   const allowSend = useRef(createRateLimiter(3000))
   const allowReceive = useRef(createRateLimiter(3000))
@@ -88,6 +89,7 @@ export function useRoomChannel(roomId: string) {
     channel
       .on('broadcast', { event: 'state' }, refresh)
       .on('broadcast', { event: 'joined' }, refresh)
+      .on('broadcast', { event: 'sync' }, () => setSyncKey((k) => k + 1))
       .on('broadcast', { event: 'removed' }, ({ payload }) => {
         if ((payload as { user_id?: string }).user_id === me.id) setRemoved(true)
         refresh()
@@ -138,5 +140,5 @@ export function useRoomChannel(roomId: string) {
     [me],
   )
 
-  return { live, online, bubbles, removed, refresh, react, nudge }
+  return { live, online, bubbles, removed, refresh, react, nudge, syncKey }
 }

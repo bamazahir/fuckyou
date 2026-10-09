@@ -12,3 +12,53 @@ clientsClaim()
 precacheAndRoute(self.__WB_MANIFEST)
 cleanupOutdatedCaches()
 registerRoute(new NavigationRoute(createHandlerBoundToURL('/index.html')))
+
+// Web push (SPEC §9). Every push shows a notification: iOS revokes subscriptions that stay silent.
+interface PushData {
+  title?: string
+  body?: string
+  tag?: string
+  url?: string
+}
+
+/** Only open paths in this app ("/room/…"), never another site ("//evil.example"). */
+function sameOriginPath(raw: unknown): string {
+  return typeof raw === 'string' && raw.startsWith('/') && !raw.startsWith('//') ? raw : '/'
+}
+
+self.addEventListener('push', (event) => {
+  let data: PushData = {}
+  try {
+    data = (event.data?.json() as PushData | undefined) ?? {}
+  } catch {
+    data = {}
+  }
+  const url = sameOriginPath(data.url)
+  event.waitUntil(
+    self.registration.showNotification(data.title ?? 'Studyroom', {
+      body: data.body ?? '',
+      tag: data.tag,
+      icon: '/icons/icon-192.png',
+      badge: '/icons/icon-192.png',
+      data: { url },
+    }),
+  )
+})
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close()
+  const raw = (event.notification.data as { url?: unknown } | null)?.url
+  const url = sameOriginPath(raw)
+  event.waitUntil(
+    (async () => {
+      const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+      const open = windows.find((w) => new URL(w.url).origin === self.location.origin)
+      if (open) {
+        await open.focus()
+        await open.navigate(url).catch(() => undefined)
+        return
+      }
+      await self.clients.openWindow(url)
+    })(),
+  )
+})

@@ -14,7 +14,17 @@ export interface MockState {
   sessions: Row[]
   rooms: Row[]
   live: Row[]
+  /** What room_info returns (sync settings + my "room is active" toggle). */
+  roomInfo: Row
   calls: { name: string; body: Row }[]
+}
+
+export const noSync: Row = {
+  sync_pomodoro: false,
+  sync_focus_s: 1500,
+  sync_break_s: 300,
+  sync_epoch: '2026-10-01T00:00:00Z',
+  notify_active: false,
 }
 
 export const otherAvatar = { colors: { body: '#E0654A', skin: '#C98B5E', hair: '#4A3426', top: '#FFC86B' } }
@@ -84,7 +94,15 @@ export const readyProfile: Row = {
 }
 
 export async function mockSupabase(page: Page, initial: Partial<MockState> = {}): Promise<MockState> {
-  const state: MockState = { profile: null, sessions: [], rooms: [], live: [], calls: [], ...initial }
+  const state: MockState = {
+    profile: null,
+    sessions: [],
+    rooms: [],
+    live: [],
+    roomInfo: noSync,
+    calls: [],
+    ...initial,
+  }
   const json = (route: Route, body: unknown, status = 200) =>
     route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) })
 
@@ -192,6 +210,16 @@ export async function mockSupabase(page: Page, initial: Partial<MockState> = {})
         }
         case 'room_live':
           return json(route, state.live)
+        case 'room_info':
+          return json(route, state.roomInfo)
+        case 'set_room_notify':
+          state.roomInfo = { ...state.roomInfo, notify_active: body.p_on }
+          return route.fulfill({ status: 204 })
+        case 'set_room':
+          return json(route, { id: body.p_room_id })
+        case 'save_push_subscription':
+        case 'delete_push_subscription':
+          return route.fulfill({ status: 204 })
         case 'room_members_list':
           return json(route, [
             {
