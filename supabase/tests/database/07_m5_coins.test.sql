@@ -1,5 +1,5 @@
 begin;
-select plan(30);
+select plan(31);
 
 -- ---------- fixtures: owner Rae, member Sol, outsider Tia ----------
 select tests.create_user('00000000-0000-0000-0000-0000000000c5', 'rae@example.com');
@@ -107,6 +107,8 @@ select public.block_user('00000000-0000-0000-0000-0000000000c5');
 select tests.act_as('00000000-0000-0000-0000-0000000000c5');
 select throws_ok($$ select public.visit_room('00000000-0000-0000-0000-0000000000c6') $$, 'not_allowed',
   'and nobody you blocked, or who blocked you');
+select throws_ok($$ select count(*) from public.room_bank_ledger $$, '42501', null,
+  'who gave what to a room bank stays private');
 
 select * from finish();
 rollback;

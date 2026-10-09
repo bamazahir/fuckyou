@@ -4,6 +4,7 @@ import { copy } from '../../content/copy'
 import { DEFAULT_PERSONAL, PERSONAL_SIZE } from '../../content/layouts'
 import { useAuth } from '../../stores/auth'
 import { useTimer } from '../../stores/timer'
+import { useWallet } from '../../stores/wallet'
 import { RoomView } from '../room/RoomView'
 
 /** Your personal room, with your bean at the desk: writing while you focus, mug in hand on a break. */
@@ -12,6 +13,7 @@ export function PersonalRoomView({ className }: { className: string }) {
   const personalRoomId = useAuth((s) => s.personalRoomId)
   const daypart = useDaypart()
   const phase = useTimer((s) => s.phase)
+  const saved = useWallet((s) => s.personalLayout)
   if (!profile) return null
   const focusing = phase.name === 'running' && phase.session.room_id === personalRoomId
   const state = focusing ? 'focus' : phase.name === 'break' ? 'break' : 'idle'
@@ -21,7 +23,7 @@ export function PersonalRoomView({ className }: { className: string }) {
     <RoomView
       className={className}
       size={PERSONAL_SIZE}
-      layout={DEFAULT_PERSONAL}
+      layout={saved && saved.length > 0 ? saved : DEFAULT_PERSONAL}
       walkIn={false}
       avatars={[
         {

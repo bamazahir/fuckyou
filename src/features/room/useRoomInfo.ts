@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import type { LayoutItem } from '../../core/grid'
 import type { SyncSettings } from '../../core/sync'
 import { supabase } from '../../lib/supabase'
 
@@ -6,6 +7,9 @@ export interface RoomInfo {
   /** Shared pomodoro settings, or null when the room doesn't run one. */
   sync: SyncSettings | null
   notifyActive: boolean
+  /** The saved layout ([] = the starter room) and the room bank. */
+  layout: LayoutItem[]
+  bank: number
 }
 
 interface Row {
@@ -14,6 +18,8 @@ interface Row {
   sync_break_s: number
   sync_epoch: string
   notify_active: boolean
+  layout?: LayoutItem[]
+  bank_coins?: number
 }
 
 /** room_info, refetched when the room's sync settings change (the 'sync' broadcast bumps `key`). */
@@ -30,6 +36,8 @@ export function useRoomInfo(roomId: string, key: number) {
           ? { epochMs: Date.parse(r.sync_epoch), focusS: r.sync_focus_s, breakS: r.sync_break_s }
           : null,
         notifyActive: r.notify_active,
+        layout: Array.isArray(r.layout) ? r.layout : [],
+        bank: r.bank_coins ?? 0,
       })
     })
     return () => {

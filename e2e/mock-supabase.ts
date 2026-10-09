@@ -1,4 +1,5 @@
 import type { Page, Route } from '@playwright/test'
+import catalog from '../src/content/catalog.json' with { type: 'json' }
 
 // A tiny in-memory stand-in for the Supabase REST/Auth API, so e2e runs without a backend.
 // It only implements what the app calls; the real rules are tested in supabase/tests (pgTAP).
@@ -16,8 +17,23 @@ export interface MockState {
   live: Row[]
   /** What room_info returns (sync settings + my "room is active" toggle). */
   roomInfo: Row
+  /** M5: coins, what you own and your personal room's saved layout. */
+  balance: number
+  earnedToday: number
+  inventory: Row[]
+  roomInventory: Row[]
+  personalLayout: Row[]
   calls: { name: string; body: Row }[]
 }
+
+export const starterInventory: Row[] = [
+  'rug_stripe',
+  'desk_oak',
+  'chair_wood',
+  'lamp_floor',
+  'plant_pot',
+  'window_double',
+].map((item_id) => ({ item_id, qty: 1 }))
 
 export const noSync: Row = {
   sync_pomodoro: false,
@@ -25,6 +41,8 @@ export const noSync: Row = {
   sync_break_s: 300,
   sync_epoch: '2026-10-01T00:00:00Z',
   notify_active: false,
+  layout: [],
+  bank_coins: 0,
 }
 
 export const otherAvatar = { colors: { body: '#E0654A', skin: '#C98B5E', hair: '#4A3426', top: '#FFC86B' } }
@@ -55,6 +73,9 @@ export const miaLive: Row = {
   sitting_seconds: 600,
   break_until: null,
 }
+
+const priceOf = (id: string) =>
+  [...catalog.items, ...catalog.accessories].find((i) => i.id === id)?.price ?? 0
 
 function fakeJwt(): string {
   const b64 = (o: object) => Buffer.from(JSON.stringify(o)).toString('base64url')
@@ -100,6 +121,11 @@ export async function mockSupabase(page: Page, initial: Partial<MockState> = {})
     rooms: [],
     live: [],
     roomInfo: noSync,
+    balance: 0,
+    earnedToday: 0,
+    inventory: starterInventory,
+    roomInventory: [],
+    personalLayout: [],
     calls: [],
     ...initial,
   }
@@ -179,8 +205,12 @@ export async function mockSupabase(page: Page, initial: Partial<MockState> = {})
         }
         case 'submit_note': {
           const s = state.sessions.find((x) => x.id === body.p_session_id)
-          if (s) s.note = String(body.p_note).trim()
-          return json(route, 0)
+          if (!s) return json(route, { message: 'session_not_found' }, 400)
+          s.note = String(body.p_note).trim()
+          const coins = Math.floor(Number(s.focus_seconds ?? 0) / 60)
+          state.balance += coins
+          state.earnedToday += coins
+          return json(route, coins)
         }
         case 'my_rooms':
           return json(route, state.rooms)
@@ -244,6 +274,39 @@ export async function mockSupabase(page: Page, initial: Partial<MockState> = {})
           })
         case 'room_info':
           return json(route, state.roomInfo)
+        case 'my_wallet':
+          return json(route, { balance: state.balance, earned_today: state.earnedToday, daily_cap: 720 })
+        case 'buy_item': {
+          const price = priceOf(String(body.p_item_id))
+          if (state.balance < price) return json(route, { message: 'not_enough_coins' }, 400)
+          state.balance -= price
+          const row = state.inventory.find((r) => r.item_id === body.p_item_id)
+          if (row) row.qty = Number(row.qty) + 1
+          else state.inventory = [...state.inventory, { item_id: body.p_item_id, qty: 1 }]
+          return json(route, state.balance)
+        }
+        case 'donate': {
+          const amount = Number(body.p_amount)
+          if (state.balance < amount) return json(route, { message: 'not_enough_coins' }, 400)
+          state.balance -= amount
+          state.roomInfo = { ...state.roomInfo, bank_coins: Number(state.roomInfo.bank_coins ?? 0) + amount }
+          return json(route, state.roomInfo.bank_coins)
+        }
+        case 'room_buy_item': {
+          const price = priceOf(String(body.p_item_id))
+          const bank = Number(state.roomInfo.bank_coins ?? 0)
+          if (bank < price) return json(route, { message: 'not_enough_coins' }, 400)
+          state.roomInfo = { ...state.roomInfo, bank_coins: bank - price }
+          state.roomInventory = [...state.roomInventory, { item_id: body.p_item_id, qty: 1 }]
+          return json(route, bank - price)
+        }
+        case 'save_layout':
+          if (body.p_room_id === 'room-personal') state.personalLayout = body.p_layout as Row[]
+          else state.roomInfo = { ...state.roomInfo, layout: body.p_layout }
+          return route.fulfill({ status: 204 })
+        case 'visit_room':
+          if (body.p_user_id !== miaLive.user_id) return json(route, { message: 'not_allowed' }, 400)
+          return json(route, { display_name: 'Mia', avatar: otherAvatar, layout: [] })
         case 'set_room_notify':
           state.roomInfo = { ...state.roomInfo, notify_active: body.p_on }
           return route.fulfill({ status: 204 })
@@ -322,7 +385,10 @@ export async function mockSupabase(page: Page, initial: Partial<MockState> = {})
       return one(state.profile ? [state.profile] : [])
     }
     if (path === '/rest/v1/blocks') return json(route, [])
-    if (path === '/rest/v1/rooms') return one(state.profile ? [{ id: 'room-personal' }] : [])
+    if (path === '/rest/v1/rooms')
+      return one(state.profile ? [{ id: 'room-personal', layout: state.personalLayout }] : [])
+    if (path === '/rest/v1/inventory') return json(route, state.inventory)
+    if (path === '/rest/v1/room_inventory') return json(route, state.roomInventory)
     if (path === '/rest/v1/sessions') {
       const status = url.searchParams.get('status')
       let rows = state.sessions

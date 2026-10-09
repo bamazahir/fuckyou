@@ -3,7 +3,11 @@ import { ErrorText } from '../../components/Screen'
 import { copy } from '../../content/copy'
 import { formatClock } from '../../core/time'
 import { noteError } from '../../core/validate'
+import { CoinIcon } from '../../components/icons'
+import { cappedCoins, sessionCoins } from '../../core/coins'
 import { useTimer } from '../../stores/timer'
+import { useUi } from '../../stores/ui'
+import { useWallet } from '../../stores/wallet'
 
 const t = copy.endSheet
 
@@ -11,16 +15,23 @@ const t = copy.endSheet
 export function NoteDialog({
   sessionId,
   focusSeconds,
+  kind = 'stopwatch',
+  plannedSeconds = null,
   onClose,
 }: {
   sessionId: string
   focusSeconds: number
+  kind?: 'pomodoro' | 'stopwatch'
+  plannedSeconds?: number | null
   onClose: (saved: boolean) => void
 }) {
   const ref = useRef<HTMLDialogElement>(null)
   const [note, setNote] = useState('')
   const [error, setError] = useState<string | null>(null)
   const submitNote = useTimer((s) => s.submitNote)
+  const earnedToday = useWallet((s) => s.earnedToday)
+  const toast = useUi((s) => s.toast)
+  const estimate = cappedCoins(sessionCoins(focusSeconds, kind, plannedSeconds), earnedToday)
 
   useEffect(() => {
     const d = ref.current
@@ -30,8 +41,10 @@ export function NoteDialog({
   async function save(e: FormEvent) {
     e.preventDefault()
     if (noteError(note)) return setError('invalid_note')
-    const ok = await submitNote(sessionId, note)
-    if (!ok) return setError(useTimer.getState().error ?? 'generic')
+    const coins = await submitNote(sessionId, note)
+    if (coins === null) return setError(useTimer.getState().error ?? 'generic')
+    if (coins > 0) toast(copy.coins.earned(coins))
+    void useWallet.getState().load()
     onClose(true)
   }
 
@@ -47,6 +60,11 @@ export function NoteDialog({
           {t.title}
         </h2>
         <p className="mt-1">{t.focused(formatClock(focusSeconds))}</p>
+        {estimate > 0 && (
+          <p className="mt-2 inline-flex items-center gap-2 font-bold">
+            <CoinIcon /> {copy.coins.forNote(estimate)}
+          </p>
+        )}
         <label htmlFor="note" className="mt-5 block text-sm font-bold">
           {t.noteLabel}
         </label>

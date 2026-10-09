@@ -13,7 +13,10 @@ import { PushSheet } from './features/push/PushSheet'
 import { usePush } from './stores/push'
 import { pendingInvite, useRooms } from './stores/rooms'
 import { HomePage } from './features/home/HomePage'
+import { DecorateMyRoomPage, DecorateRoomPage } from './features/decor/DecoratePage'
+import { VisitPage } from './features/decor/VisitPage'
 import { MyRoomPage } from './features/myroom/MyRoomPage'
+import { ShopPage } from './features/shop/ShopPage'
 import { NotFoundPage } from './features/NotFoundPage'
 import { OnboardingPage } from './features/onboarding/OnboardingPage'
 import { ProfilePage } from './features/profile/ProfilePage'
@@ -22,6 +25,7 @@ import { startClockSync } from './lib/servertime'
 import { supabase } from './lib/supabase'
 import { useAuth, type AuthStatus } from './stores/auth'
 import { useTimer } from './stores/timer'
+import { useWallet } from './stores/wallet'
 
 /** Routes each auth state to the one screen it may see (SPEC §5.1, §8.2 consent gate). */
 function Gate({ allow, children }: { allow: AuthStatus; children: ReactNode }) {
@@ -81,6 +85,11 @@ const router = createBrowserRouter([
     children: [
       { path: '/', element: <HomePage /> },
       { path: '/me', element: <MyRoomPage /> },
+      { path: '/me/decorate', element: <DecorateMyRoomPage /> },
+      { path: '/shop', element: <ShopPage /> },
+      { path: '/room/:roomId/shop', element: <ShopPage /> },
+      { path: '/room/:roomId/decorate', element: <DecorateRoomPage /> },
+      { path: '/visit/:userId', element: <VisitPage /> },
       { path: '/profile', element: <ProfilePage /> },
       { path: '/room/:roomId', element: <RoomPage /> },
       { path: '/admin', element: <AdminPage /> },
@@ -101,6 +110,7 @@ export function App() {
     startClockSync()
     void useTimer.getState().loadActive()
     void useRooms.getState().loadBlocks()
+    void useWallet.getState().load()
     const uid = useAuth.getState().profile?.id
     if (uid)
       void usePush

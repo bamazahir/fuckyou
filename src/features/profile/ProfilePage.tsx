@@ -101,6 +101,8 @@ export function ProfilePage() {
         <NoteDialog
           sessionId={noteFor.id}
           focusSeconds={noteFor.focus_seconds ?? 0}
+          kind={noteFor.kind}
+          plannedSeconds={noteFor.planned_seconds}
           onClose={(saved) => {
             setNoteFor(null)
             if (saved) setReloadKey((k) => k + 1)

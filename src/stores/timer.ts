@@ -24,7 +24,8 @@ interface TimerState {
   ) => Promise<void>
   end: () => Promise<void>
   checkin: () => Promise<void>
-  submitNote: (sessionId: string, note: string) => Promise<boolean>
+  /** Saves the note; returns the coins it paid, or null on error. */
+  submitNote: (sessionId: string, note: string) => Promise<number | null>
   /** `shared`: the room runs a shared pomodoro, whose break the dock shows instead. */
   afterEnded: (opts?: { shared?: boolean }) => Promise<void>
   skipBreak: () => void
@@ -77,16 +78,16 @@ export const useTimer = create<TimerState>((set, get) => ({
   },
 
   submitNote: async (sessionId, note) => {
-    const { error } = await supabase.rpc('submit_note', {
+    const { data, error } = await supabase.rpc('submit_note', {
       p_session_id: sessionId,
       p_note: note,
       p_public: false,
     })
     if (error) {
       set({ error: rpcErrorCode(error) })
-      return false
+      return null
     }
-    return true
+    return typeof data === 'number' ? data : 0
   },
 
   /** After the end sheet: pomodoros go to a break, stopwatches back to idle. */

@@ -46,3 +46,22 @@ export function BeanIcon(props: SVGProps<SVGSVGElement>) {
     </Icon>
   )
 }
+
+/** A coin: filled with the accent role so it reads as money everywhere. */
+export function CoinIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon width={20} height={20} {...props}>
+      <circle cx="12" cy="12" r="9" fill="var(--accent)" stroke="var(--line)" />
+      <path d="M12 7.5v9M9.5 9.5h4a1.5 1.5 0 0 1 0 3h-3a1.5 1.5 0 0 0 0 3h4" stroke="var(--line)" />
+    </Icon>
+  )
+}
+
+export function BagIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <path d="M5 8h14l-1 12H6z" />
+      <path d="M9 8a3 3 0 0 1 6 0" />
+    </Icon>
+  )
+}

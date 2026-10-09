@@ -4,6 +4,7 @@ import type { Avatar, Profile } from '../lib/db'
 import { isConfigured, supabase } from '../lib/supabase'
 import { usePush } from './push'
 import { useTheme } from './theme'
+import { useWallet } from './wallet'
 
 export type AuthStatus =
   'loading' | 'unconfigured' | 'signed_out' | 'needs_profile' | 'pending' | 'ready' | 'error'
@@ -97,6 +98,7 @@ export const useAuth = create<AuthState>((set, get) => ({
       .disable()
       .catch(() => undefined)
     await supabase.auth.signOut()
+    useWallet.getState().clear()
     set({ session: null, profile: null, personalRoomId: null, status: 'signed_out' })
   },
 }))

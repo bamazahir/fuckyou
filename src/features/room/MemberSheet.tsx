@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Bean } from '../../components/Bean'
 import { Dialog } from '../../components/Dialog'
 import { ErrorText } from '../../components/Screen'
@@ -121,6 +122,9 @@ export function MemberSheet({
 
       {!isMe && (
         <div className="mt-5 flex flex-wrap gap-2">
+          <Link to={`/visit/${member.user_id}`} className="btn btn-secondary">
+            {copy.visit.button}
+          </Link>
           <button
             type="button"
             className="btn btn-primary"

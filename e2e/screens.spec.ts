@@ -1,8 +1,17 @@
 import { test } from '@playwright/test'
-import { miaLive, mockSupabase, otherAvatar, readyProfile, sharedRoom, signIn } from './mock-supabase'
+import {
+  miaLive,
+  mockSupabase,
+  otherAvatar,
+  readyProfile,
+  sharedRoom,
+  signIn,
+  starterInventory,
+} from './mock-supabase'
 
 // Screenshot set for the studyroom-look §4 review. Off by default: SCREENSHOTS=1 pnpm test:e2e screens
 test.skip(!process.env.SCREENSHOTS, 'set SCREENSHOTS=1 to capture review screenshots')
+test.setTimeout(120_000)
 
 const THEMES = ['lamplight', 'library', 'blossom', 'observatory'] as const
 const crowd = [
@@ -43,6 +52,8 @@ for (const theme of THEMES) {
       await page.clock.setFixedTime(new Date(2026, 9, 8, mode === 'dark' ? 23 : 14, 0, 0))
       await mockSupabase(page, {
         profile: readyProfile,
+        balance: 340,
+        inventory: [...starterInventory, { item_id: 'crate', qty: 1 }, { item_id: 'plant_tall', qty: 1 }],
         rooms: [
           sharedRoom(),
           sharedRoom({ id: 'room-2', name: 'Maths HL', studying_count: 0, studying: [], member_count: 5 }),
@@ -96,6 +107,15 @@ for (const theme of THEMES) {
       await page.locator('[data-scene-ready]').waitFor()
       await page.waitForTimeout(800)
       await shot('myroom')
+      await page.goto('/shop')
+      await page.locator('main img').first().waitFor()
+      await page.waitForTimeout(600)
+      await shot('shop')
+      await page.goto('/me/decorate')
+      await page.locator('[data-scene-ready]').waitFor()
+      await page.getByRole('button', { name: /^Crate, 1$/ }).click()
+      await page.waitForTimeout(800)
+      await shot('decorate')
       if (theme === 'lamplight') {
         await page.goto('/profile')
         await page.getByText('Focus, last 7 days').waitFor()

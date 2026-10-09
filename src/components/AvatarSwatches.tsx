@@ -53,7 +53,16 @@ function Choice<T extends string>({
 }
 
 /** Style (hair, outfit, accessories) and curated color pickers (studyroom-look §2). */
-export function AvatarSwatches({ avatar, onChange }: { avatar: Avatar; onChange: (a: Avatar) => void }) {
+export function AvatarSwatches({
+  avatar,
+  onChange,
+  owned = new Set(),
+}: {
+  avatar: Avatar
+  onChange: (a: Avatar) => void
+  /** Shop accessories this person owns (the starter ones are always shown). */
+  owned?: ReadonlySet<string>
+}) {
   const [tab, setTab] = useState<'style' | 'colors'>('style')
   const look = lookOf(avatar)
   return (
@@ -105,7 +114,7 @@ export function AvatarSwatches({ avatar, onChange }: { avatar: Avatar; onChange:
           <fieldset className="mt-4">
             <legend className="text-sm font-bold">{t.accessoriesLabel}</legend>
             <div className="mt-2 grid grid-cols-3 gap-2">
-              {ACCESSORIES.map(({ id }) => (
+              {ACCESSORIES.filter((a) => !a.premium || owned.has(a.id)).map(({ id }) => (
                 <label key={id} className={`chip px-2 text-sm ${look.accessories.has(id) ? 'chip-on' : ''}`}>
                   <input
                     type="checkbox"

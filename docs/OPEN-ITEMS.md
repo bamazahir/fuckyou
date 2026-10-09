@@ -39,5 +39,8 @@ reaction/nudge counts (accepted, decision 0010) · 13–15 consent outside the s
 
 ## Added by work built past the gates (decision 0011)
 - [ ] M5: tune coin prices and the daily cap after real earn rates
+- [ ] M5: after `db push`, check an existing account and room got their starter things (Shop shows "You have 1" on the desk)
+- [ ] M5 device check: decorate on a phone (tap → tap again places it; Save) and on a laptop
+- [ ] M5 device check: shop thumbnails appear on a mid-range Android without a long freeze
 - [ ] M6: lofi station needs CC0 / explicitly licensed tracks chosen and uploaded by the builder
 - [ ] M7: Lighthouse run on the deployed URL

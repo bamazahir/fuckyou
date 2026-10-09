@@ -1,10 +1,11 @@
 // The isometric room (SPEC §10): orthographic true-iso camera fitted to the room, flat-shaded
 // procedural furniture, seated beans and DOM labels (name + timer + state) projected on top.
-import { Canvas, useThree } from '@react-three/fiber'
+import { Canvas, useThree, type ThreeEvent } from '@react-three/fiber'
 import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import type { DirectionalLight, OrthographicCamera } from 'three'
+import { MeshBasicMaterial, type DirectionalLight, type OrthographicCamera } from 'three'
 import { CATALOG } from '../content/layouts'
 import { rotatedSize, type LayoutItem } from '../core/grid'
+import { pointToCell } from '../core/edit'
 import { cellCenter, isoFrame, toScreen, type IsoFrame, type Vec3 } from '../core/iso'
 import { fullLabels, labelWidth } from '../core/labels'
 import { assignSeats, MAX_LABELS, seatList, type Seat } from '../core/seats'
@@ -39,6 +40,18 @@ export interface IsoRoomProps {
   onSelect?: (id: string) => void
   /** Animate people walking in when they first appear (off for the first render). */
   walkIn?: boolean
+  /** Decorating: the whole room is framed, people are hidden, and taps go to these handlers. */
+  edit?: SceneEdit
+}
+
+export interface SceneEdit {
+  /** The item being placed or moved, where it would go now. */
+  ghost: LayoutItem | null
+  ghostOk: boolean
+  selected: number | null
+  onHover: (cell: { x: number; z: number } | null) => void
+  onTapCell: (cell: { x: number; z: number }) => void
+  onTapItem: (index: number) => void
 }
 
 const QUARTER = Math.PI / 2
@@ -96,10 +109,12 @@ function framePoints(
   size: number,
   layout: readonly LayoutItem[],
   people: readonly [number, number, number][],
+  /** Decorating: fit the whole floor, so every cell can be reached. */
+  whole = false,
 ): Vec3[] {
   const h = size / 2
-  const xs: number[] = []
-  const zs: number[] = []
+  const xs: number[] = whole ? [-h, h] : []
+  const zs: number[] = whole ? [-h, h] : []
   for (const item of layout) {
     const def = CATALOG.get(item.item_id)
     if (!def) continue
@@ -254,40 +269,152 @@ const Shell = memo(function Shell({ size }: { size: number }) {
   )
 })
 
-const Items = memo(function Items({ layout, size }: { layout: readonly LayoutItem[]; size: number }) {
+/** One layout item in its place (floor items by footprint corner, wall items on their wall). */
+function ItemAt({ item, size, onTap }: { item: LayoutItem; size: number; onTap?: () => void }) {
+  const def = CATALOG.get(item.item_id)
+  if (!def) return null
   const h = size / 2
+  const tap = onTap
+    ? (e: ThreeEvent<MouseEvent>) => {
+        e.stopPropagation()
+        onTap()
+      }
+    : undefined
+  if (def.layer === 'wall') {
+    const w = def.footprint[0]
+    const along = (item.rot === 0 ? item.x : item.z) + w / 2 - h
+    return (
+      <group
+        position={item.rot === 0 ? [along, 0, -h] : [-h, 0, along]}
+        rotation={[0, item.rot === 0 ? 0 : QUARTER, 0]}
+        onClick={tap}
+      >
+        <ItemModel def={def} />
+      </group>
+    )
+  }
+  const [w, d] = rotatedSize(def, item.rot)
+  return (
+    <group
+      position={[item.x + w / 2 - h, 0, item.z + d / 2 - h]}
+      rotation={[0, item.rot * QUARTER, 0]}
+      onClick={tap}
+    >
+      <ItemModel def={def} />
+    </group>
+  )
+}
+
+/** A flat marker showing an item's footprint (on the floor, or on its wall). */
+function Footprint({ item, size, color }: { item: LayoutItem; size: number; color: string }) {
+  const def = CATALOG.get(item.item_id)
+  if (!def) return null
+  const h = size / 2
+  if (def.layer === 'wall') {
+    const w = def.footprint[0]
+    const along = (item.rot === 0 ? item.x : item.z) + w / 2 - h
+    return (
+      <group
+        position={item.rot === 0 ? [along, 1.2, -h + 0.02] : [-h + 0.02, 1.2, along]}
+        rotation={[0, item.rot === 0 ? 0 : QUARTER, 0]}
+      >
+        <Box size={[w - 0.05, 2.2, 0.02]} color={color} glow={0.4} outline={false} shadow={false} />
+      </group>
+    )
+  }
+  const [w, d] = rotatedSize(def, item.rot)
+  return (
+    <Box
+      size={[w - 0.06, 0.03, d - 0.06]}
+      position={[item.x + w / 2 - h, 0.02, item.z + d / 2 - h]}
+      color={color}
+      glow={0.4}
+      outline={false}
+      shadow={false}
+    />
+  )
+}
+
+const Items = memo(function Items({
+  layout,
+  size,
+  onTapItem,
+}: {
+  layout: readonly LayoutItem[]
+  size: number
+  onTapItem?: (index: number) => void
+}) {
   return (
     <>
-      {layout.map((item, i) => {
-        const def = CATALOG.get(item.item_id)
-        if (!def) return null
-        if (def.layer === 'wall') {
-          const w = def.footprint[0]
-          const along = (item.rot === 0 ? item.x : item.z) + w / 2 - h
-          return (
-            <group
-              key={i}
-              position={item.rot === 0 ? [along, 0, -h] : [-h, 0, along]}
-              rotation={[0, item.rot === 0 ? 0 : QUARTER, 0]}
-            >
-              <ItemModel def={def} />
-            </group>
-          )
-        }
-        const [w, d] = rotatedSize(def, item.rot)
-        return (
-          <group
-            key={i}
-            position={[item.x + w / 2 - h, 0, item.z + d / 2 - h]}
-            rotation={[0, item.rot * QUARTER, 0]}
-          >
-            <ItemModel def={def} />
-          </group>
-        )
-      })}
+      {layout.map((item, i) => (
+        <ItemAt key={i} item={item} size={size} onTap={onTapItem ? () => onTapItem(i) : undefined} />
+      ))}
     </>
   )
 })
+
+/** Invisible surfaces that turn pointer positions into cells while decorating. */
+function EditSurfaces({ size, edit }: { size: number; edit: SceneEdit }) {
+  const h = size / 2
+  const top = wallHeight(size)
+  const cell = (x: number, z: number) => pointToCell(x, z, size)
+  const clampCell = (v: number) => Math.max(0, Math.min(size - 1, Math.floor(v + h)))
+  const hidden = useMemo(
+    () => new MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }),
+    [],
+  )
+  return (
+    <>
+      <mesh
+        rotation={[-Math.PI / 2, 0, 0]}
+        position={[0, 0.03, 0]}
+        material={hidden}
+        onPointerMove={(e) => {
+          e.stopPropagation()
+          edit.onHover(cell(e.point.x, e.point.z))
+        }}
+        onPointerOut={() => edit.onHover(null)}
+        onClick={(e) => {
+          e.stopPropagation()
+          const c = cell(e.point.x, e.point.z)
+          if (c) edit.onTapCell(c)
+        }}
+      >
+        <planeGeometry args={[size, size]} />
+      </mesh>
+      {/* back wall (x) and side wall (z), for wall items */}
+      <mesh
+        position={[0, top / 2, -h + 0.05]}
+        material={hidden}
+        onPointerMove={(e) => {
+          e.stopPropagation()
+          edit.onHover({ x: clampCell(e.point.x), z: 0 })
+        }}
+        onClick={(e) => {
+          e.stopPropagation()
+          edit.onTapCell({ x: clampCell(e.point.x), z: 0 })
+        }}
+      >
+        <planeGeometry args={[size, top]} />
+      </mesh>
+      <mesh
+        position={[-h + 0.05, top / 2, 0]}
+        rotation={[0, Math.PI / 2, 0]}
+        material={hidden}
+        onPointerMove={(e) => {
+          e.stopPropagation()
+          edit.onHover({ x: 0, z: clampCell(e.point.z) })
+        }}
+        onClick={(e) => {
+          e.stopPropagation()
+          edit.onTapCell({ x: 0, z: clampCell(e.point.z) })
+        }}
+      >
+        <planeGeometry args={[size, top]} />
+      </mesh>
+    </>
+  )
+}
 
 /** Night lamps: a warm point light at each lamp (desk lamps in rooms without one), at most 4. */
 function lampPositions(layout: readonly LayoutItem[], size: number): [number, number, number][] {
@@ -311,6 +438,7 @@ export default function IsoRoom({
   label,
   onSelect,
   walkIn = true,
+  edit,
 }: IsoRoomProps) {
   const [ref, [width, height]] = useElementSize<HTMLDivElement>()
   const theme = useTheme((s) => s.theme)
@@ -318,6 +446,9 @@ export default function IsoRoom({
   const reducedMotion = useReducedMotion()
   const [selected, setSelected] = useState<string | null>(null)
   const [ready, setReady] = useState(false)
+  // A lost WebGL context (low memory, too many canvases, a GPU reset) leaves a blank box; rebuild the
+  // canvas (at most twice, so a broken GPU can't loop).
+  const [generation, setGeneration] = useState(0)
   const [firstIds] = useState(() => new Set(avatars.map((a) => a.id)))
   const colors = useMemo(() => readSceneColors(), [theme, mode]) // eslint-disable-line react-hooks/exhaustive-deps
   const shadows = useMemo(() => (navigator.hardwareConcurrency ?? 8) > 4, [])
@@ -332,20 +463,17 @@ export default function IsoRoom({
     return seat ? [{ a, seat, pos: seatPosition(seat, size) }] : []
   })
   const peopleKey = placed.map((p) => p.pos.join()).join('|')
+  const editing = edit !== undefined
   const frame = useMemo(
     () =>
       width > 0 && height > 0
         ? isoFrame(
-            framePoints(
-              size,
-              layout,
-              placed.map((p) => p.pos),
-            ),
+            framePoints(size, layout, edit ? [] : placed.map((p) => p.pos), Boolean(edit)),
             width,
             height,
           )
         : null,
-    [width, height, size, layout, peopleKey], // eslint-disable-line react-hooks/exhaustive-deps
+    [width, height, size, layout, peopleKey, editing], // eslint-disable-line react-hooks/exhaustive-deps
   )
   const lamps = useMemo(() => lampPositions(layout, size), [layout, size])
   const zoom = frame?.zoom ?? 0
@@ -386,6 +514,7 @@ export default function IsoRoom({
     >
       {frame && env && (
         <Canvas
+          key={generation}
           orthographic
           frameloop="demand"
           dpr={[1, 1.5]}
@@ -394,7 +523,18 @@ export default function IsoRoom({
           camera={{ position: [10, 10, 10], zoom: frame.zoom, near: 0.1, far: 200 }}
           gl={{ antialias: true, powerPreference: 'low-power' }}
           onPointerMissed={() => setSelected(null)}
-          onCreated={() => setReady(true)}
+          onCreated={({ gl }) => {
+            setReady(true)
+            // Browsers evict the oldest context when a page has too many; a fresh canvas gets a new one.
+            gl.domElement.addEventListener(
+              'webglcontextlost',
+              (e) => {
+                e.preventDefault()
+                if (generation < 2) window.setTimeout(() => setGeneration((n) => n + 1), 250)
+              },
+              { once: true },
+            )
+          }}
           aria-hidden="true"
         >
           <SceneContext.Provider value={env}>
@@ -415,30 +555,41 @@ export default function IsoRoom({
                 />
               ))}
             <Shell size={size} />
-            <Items layout={layout} size={size} />
-            {placed.map(({ a, seat, pos }) => (
-              <group key={a.id}>
-                {seat.kind === 'cushion' && (
-                  <group position={[pos[0], 0, pos[2]]}>
-                    <Cushion color={a.isMe ? colors.accent : colors.rest} />
-                  </group>
-                )}
-                <Bean3D
-                  id={a.id}
-                  avatar={a.avatar}
-                  seat={seat.height >= 0.3 ? 'chair' : 'floor'}
-                  state={a.state}
-                  position={pos}
-                  facing={seat.facing * QUARTER}
-                  from={walkIn && !firstIds.has(a.id) ? door : undefined}
-                  onSelect={() => select(a.id)}
-                />
-              </group>
-            ))}
+            <Items layout={layout} size={size} onTapItem={edit?.onTapItem} />
+            {edit && <EditSurfaces size={size} edit={edit} />}
+            {edit && edit.selected !== null && layout[edit.selected] && (
+              <Footprint item={layout[edit.selected] as LayoutItem} size={size} color={colors.accent} />
+            )}
+            {edit?.ghost && (
+              <>
+                <ItemAt item={edit.ghost} size={size} />
+                <Footprint item={edit.ghost} size={size} color={edit.ghostOk ? colors.good : colors.danger} />
+              </>
+            )}
+            {!edit &&
+              placed.map(({ a, seat, pos }) => (
+                <group key={a.id}>
+                  {seat.kind === 'cushion' && (
+                    <group position={[pos[0], 0, pos[2]]}>
+                      <Cushion color={a.isMe ? colors.accent : colors.rest} />
+                    </group>
+                  )}
+                  <Bean3D
+                    id={a.id}
+                    avatar={a.avatar}
+                    seat={seat.height >= 0.3 ? 'chair' : 'floor'}
+                    state={a.state}
+                    position={pos}
+                    facing={seat.facing * QUARTER}
+                    from={walkIn && !firstIds.has(a.id) ? door : undefined}
+                    onSelect={() => select(a.id)}
+                  />
+                </group>
+              ))}
           </SceneContext.Provider>
         </Canvas>
       )}
-      {frame && ready && (
+      {frame && ready && !edit && (
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
           {labels.map(({ a, x, y, full }) => {
             const fresh = walkIn && !firstIds.has(a.id)

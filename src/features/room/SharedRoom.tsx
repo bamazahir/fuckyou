@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Dialog } from '../../components/Dialog'
+import { CoinIcon } from '../../components/icons'
 import { RoomScene } from '../../components/RoomScene'
 import { ErrorText } from '../../components/Screen'
 import { useDaypart } from '../../components/useDaypart'
@@ -24,6 +25,7 @@ import { MemberSheet } from './MemberSheet'
 import { NoteDialog } from './NoteDialog'
 import { RoomSettings } from './RoomSettings'
 import { TimerDock } from './TimerDock'
+import { DonateDialog } from './DonateDialog'
 import { RoomView } from './RoomView'
 import { useRoomInfo } from './useRoomInfo'
 import { REACTIONS, useRoomChannel } from './useRoomChannel'
@@ -73,7 +75,7 @@ export function SharedRoom({ room }: { room: MyRoom }) {
   const [tab, setTab] = useState<'leaderboard' | 'members'>('leaderboard')
   const [members, setMembers] = useState<RoomMember[] | null>(null)
   const [openMember, setOpenMember] = useState<RoomMember | null>(null)
-  const [sheet, setSheet] = useState<'menu' | 'settings' | 'leave' | null>(null)
+  const [sheet, setSheet] = useState<'menu' | 'settings' | 'leave' | 'donate' | null>(null)
   const [membersKey, setMembersKey] = useState(0)
   const [error, setError] = useState<string | null>(null)
 
@@ -197,7 +199,7 @@ export function SharedRoom({ room }: { room: MyRoom }) {
               <RoomView
                 className={SCENE_BOX}
                 size={SHARED_SIZE}
-                layout={DEFAULT_SHARED}
+                layout={info && info.layout.length > 0 ? info.layout : DEFAULT_SHARED}
                 avatars={sceneAvatars}
                 night={daypart === 'night'}
                 lampOn={studyingIds.length > 0 || daypart === 'night'}
@@ -330,6 +332,26 @@ export function SharedRoom({ room }: { room: MyRoom }) {
                 <span className="text-sm text-muted">{copy.push.roomToggleHint}</span>
               </span>
             </label>
+            <p className="inline-flex items-center gap-2 font-bold" data-testid="room-bank">
+              <CoinIcon /> {copy.coins.bank(info?.bank ?? 0)}
+            </p>
+            <button
+              type="button"
+              className="btn btn-secondary justify-start"
+              onClick={() => setSheet('donate')}
+            >
+              {copy.coins.donate}
+            </button>
+            {(myRole === 'owner' || myRole === 'mod') && (
+              <>
+                <Link to={`/room/${room.id}/decorate`} className="btn btn-secondary justify-start">
+                  {copy.decor.editRoom}
+                </Link>
+                <Link to={`/room/${room.id}/shop`} className="btn btn-secondary justify-start">
+                  {copy.decor.roomShop}
+                </Link>
+              </>
+            )}
             {(myRole === 'owner' || myRole === 'mod') && (
               <button
                 type="button"
@@ -358,6 +380,16 @@ export function SharedRoom({ room }: { room: MyRoom }) {
           onClose={() => setSheet(null)}
         />
       )}
+      {sheet === 'donate' && (
+        <DonateDialog
+          roomId={room.id}
+          onClose={() => setSheet(null)}
+          onDone={() => {
+            setSheet(null)
+            refetchInfo()
+          }}
+        />
+      )}
       {sheet === 'leave' && (
         <Dialog title={t.leave} onClose={() => setSheet(null)} labelledBy="leave-title">
           <p className="mt-3">{t.leaveConfirm}</p>
@@ -378,6 +410,8 @@ export function SharedRoom({ room }: { room: MyRoom }) {
           key={phase.session.id}
           sessionId={phase.session.id}
           focusSeconds={phase.session.focus_seconds ?? 0}
+          kind={phase.session.kind}
+          plannedSeconds={phase.session.planned_seconds}
           onClose={() => {
             void afterEnded({ shared: sync !== null })
             refresh()

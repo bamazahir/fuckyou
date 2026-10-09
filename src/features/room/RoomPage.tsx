@@ -31,6 +31,8 @@ function SoloRoom({ roomId }: { roomId: string }) {
           key={phase.session.id}
           sessionId={phase.session.id}
           focusSeconds={phase.session.focus_seconds ?? 0}
+          kind={phase.session.kind}
+          plannedSeconds={phase.session.planned_seconds}
           onClose={() => void afterEnded()}
         />
       )}
