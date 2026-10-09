@@ -6,15 +6,22 @@ export interface AvatarColors {
   skin: string
   hair: string
   top: string
+  /** Accessories (hats, scarf, headphone cups, bow, stripes). Optional: older avatars lack it. */
+  accent?: string
 }
 
 export type HairStyle = 'short' | 'long' | 'curly' | 'bun'
+export type TopStyle = 'tee' | 'hoodie' | 'stripes' | 'collar'
+export type BottomStyle = 'trousers' | 'shorts' | 'skirt'
+export type Accessory = 'glasses' | 'headphones' | 'beanie' | 'cap' | 'bow' | 'scarf'
 
 export interface Avatar {
   colors: AvatarColors
   /** Missing on avatars made before hairstyles existed: treat as 'short'. */
   hair?: HairStyle
-  accessories?: string[]
+  outfit?: { top?: TopStyle; bottom?: BottomStyle }
+  /** At most one per slot (see ACCESSORIES). */
+  accessories?: Accessory[]
 }
 
 export interface Profile {

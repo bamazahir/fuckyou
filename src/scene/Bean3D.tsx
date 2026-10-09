@@ -4,10 +4,10 @@
 import { useFrame, type ThreeEvent } from '@react-three/fiber'
 import { useRef, useState, type ReactNode } from 'react'
 import type { Group } from 'three'
-import { FACE, hairOf } from '../content/avatar'
+import { FACE, lookOf, type Look } from '../content/avatar'
 import type { Avatar, HairStyle } from '../lib/db'
 import { useScene } from './context'
-import { Ball, Box, Capsule, Cylinder, type V3 } from './parts'
+import { Ball, Box, Capsule, Cylinder, Dome, Torus, type V3 } from './parts'
 
 const HEAD_R = 0.27
 const HIP_SIT = 0.06
@@ -63,11 +63,16 @@ function Cap({ color }: { color: string }) {
   )
 }
 
-function Fringe({ color, xs = [-0.12, 0, 0.12] }: { color: string; xs?: number[] }) {
+function Fringe({ color, xs = [-0.12, 0, 0.12], hat }: { color: string; xs?: number[]; hat: boolean }) {
+  // Under a hat the fringe peeks out lower, below the brim.
   return (
     <>
       {xs.map((x) => (
-        <group key={x} position={[x, 0.15, 0.17]} scale={[1, 0.7, 0.6]}>
+        <group
+          key={x}
+          position={hat ? [x, 0.06, 0.2] : [x, 0.15, 0.17]}
+          scale={hat ? [0.9, 0.45, 0.5] : [1, 0.7, 0.6]}
+        >
           <Ball radius={0.1} color={color} outline={false} />
         </group>
       ))}
@@ -90,20 +95,20 @@ const CURLS: V3[] = [
   [-0.08, 0.2, 0.18],
 ]
 
-function Hair({ style, color }: { style: HairStyle; color: string }) {
+function Hair({ style, color, hat }: { style: HairStyle; color: string; hat: boolean }) {
   switch (style) {
     case 'short':
       return (
         <>
-          <Cap color={color} />
-          <Fringe color={color} />
+          {!hat && <Cap color={color} />}
+          <Fringe color={color} hat={hat} />
         </>
       )
     case 'long':
       return (
         <>
-          <Cap color={color} />
-          <Fringe color={color} />
+          {!hat && <Cap color={color} />}
+          <Fringe color={color} hat={hat} />
           <group position={[0, -0.13, -0.12]} scale={[1.25, 1, 0.65]}>
             <Capsule radius={0.2} length={0.16} color={color} />
           </group>
@@ -115,8 +120,8 @@ function Hair({ style, color }: { style: HairStyle; color: string }) {
     case 'curly':
       return (
         <>
-          <Cap color={color} />
-          {CURLS.map((p) => (
+          {!hat && <Cap color={color} />}
+          {CURLS.filter((p) => !hat || p[1] < 0.12).map((p) => (
             <Ball key={p.join()} radius={0.105} position={p} color={color} />
           ))}
         </>
@@ -124,9 +129,9 @@ function Hair({ style, color }: { style: HairStyle; color: string }) {
     case 'bun':
       return (
         <>
-          <Cap color={color} />
-          <Fringe color={color} xs={[-0.1, 0.06]} />
-          <Ball radius={0.11} position={[0, 0.27, -0.12]} color={color} />
+          {!hat && <Cap color={color} />}
+          <Fringe color={color} xs={[-0.1, 0.06]} hat={hat} />
+          {!hat && <Ball radius={0.11} position={[0, 0.27, -0.12]} color={color} />}
         </>
       )
   }
@@ -144,48 +149,43 @@ function Mug() {
 
 function Leg({
   pose,
-  color,
+  upper,
+  lower,
   innerRef,
   x,
 }: {
   pose: Pose
-  color: string
+  /** Thigh color (trousers or shorts). */
+  upper: string
+  /** Shin color: trousers, or skin under shorts and skirts. */
+  lower: string
   innerRef: React.Ref<Group>
   x: number
 }) {
   const hip = pose === 'stand' ? HIP_STAND : HIP_SIT
+  const flat = Math.PI / 2
   let parts: ReactNode
   if (pose === 'stand') {
     parts = (
       <>
-        <Capsule radius={0.065} length={0.12} position={[0, -0.13, 0]} color={color} />
+        <Capsule radius={0.066} length={0.03} position={[0, -0.07, 0]} color={upper} />
+        <Capsule radius={0.06} length={0.08} position={[0, -0.15, 0]} color={lower} />
         <Box size={[0.1, 0.06, 0.15]} position={[0, -0.24, 0.02]} color={FACE.shoe} />
       </>
     )
   } else if (pose === 'chair') {
     parts = (
       <>
-        <Capsule
-          radius={0.065}
-          length={0.12}
-          position={[0, 0, 0.1]}
-          rotation={[Math.PI / 2, 0, 0]}
-          color={color}
-        />
-        <Capsule radius={0.06} length={0.12} position={[0, -0.12, 0.2]} color={color} />
+        <Capsule radius={0.065} length={0.12} position={[0, 0, 0.1]} rotation={[flat, 0, 0]} color={upper} />
+        <Capsule radius={0.06} length={0.12} position={[0, -0.12, 0.2]} color={lower} />
         <Box size={[0.1, 0.06, 0.15]} position={[0, -0.24, 0.23]} color={FACE.shoe} />
       </>
     )
   } else {
     parts = (
       <>
-        <Capsule
-          radius={0.065}
-          length={0.32}
-          position={[0, 0, 0.2]}
-          rotation={[Math.PI / 2, 0, 0]}
-          color={color}
-        />
+        <Capsule radius={0.065} length={0.12} position={[0, 0, 0.1]} rotation={[flat, 0, 0]} color={upper} />
+        <Capsule radius={0.06} length={0.14} position={[0, 0, 0.29]} rotation={[flat, 0, 0]} color={lower} />
         <Box size={[0.1, 0.15, 0.06]} position={[0, 0.03, 0.42]} color={FACE.shoe} />
       </>
     )
@@ -194,6 +194,157 @@ function Leg({
     <group ref={innerRef} position={[x, hip, 0]}>
       {parts}
     </group>
+  )
+}
+
+/** Top styles, drawn over the plain torso. */
+function TopDetails({ look, top, hip }: { look: Look; top: string; hip: number }) {
+  switch (look.top) {
+    case 'hoodie':
+      return (
+        <>
+          <group position={[0, hip + 0.36, -0.1]} scale={[1, 0.7, 0.8]}>
+            <Ball radius={0.15} color={top} />
+          </group>
+          <Box
+            size={[0.16, 0.07, 0.03]}
+            position={[0, hip + 0.13, 0.165]}
+            rotation={[-0.15, 0, 0]}
+            color={top}
+          />
+          {[-0.04, 0.04].map((x) => (
+            <Box
+              key={x}
+              size={[0.012, 0.08, 0.012]}
+              position={[x, hip + 0.28, 0.15]}
+              color={FACE.collar}
+              outline={false}
+            />
+          ))}
+        </>
+      )
+    case 'stripes':
+      return (
+        <>
+          {[0.12, 0.22].map((y) => (
+            <Cylinder
+              key={y}
+              top={0.183 - y * 0.15}
+              bottom={0.188 - y * 0.15}
+              height={0.035}
+              position={[0, hip + y, 0]}
+              color={look.accent}
+              outline={false}
+            />
+          ))}
+        </>
+      )
+    case 'collar':
+      return (
+        <>
+          {[-1, 1].map((side) => (
+            <Box
+              key={side}
+              size={[0.09, 0.02, 0.07]}
+              position={[side * 0.05, hip + 0.33, 0.1]}
+              rotation={[0.5, side * 0.5, side * -0.3]}
+              color={FACE.collar}
+            />
+          ))}
+        </>
+      )
+    case 'tee':
+      return null
+  }
+}
+
+/** Hats, glasses, headphones and bows, in the head's frame. */
+function HeadAccessories({ look }: { look: Look }) {
+  const a = look.accessories
+  const big = look.hair === 'curly' ? 1.12 : 1
+  return (
+    <>
+      {a.has('beanie') && (
+        <group scale={big} rotation={[-0.15, 0, 0]}>
+          <Dome radius={0.295} theta={1.2} position={[0, 0.02, 0]} color={look.accent} />
+          <Cylinder top={0.27} bottom={0.29} height={0.08} position={[0, 0.12, 0]} color={look.accent} />
+          <Ball radius={0.06} position={[0, 0.34, 0]} color={look.accent} />
+        </group>
+      )}
+      {a.has('cap') && (
+        <group scale={big} rotation={[-0.1, 0, 0]}>
+          <Dome radius={0.29} theta={1.3} position={[0, 0.02, 0]} color={look.accent} />
+          <Cylinder top={0.27} bottom={0.28} height={0.03} position={[0, 0.095, 0]} color={look.accent} />
+          <Box
+            size={[0.3, 0.025, 0.2]}
+            position={[0, 0.095, 0.3]}
+            rotation={[0.12, 0, 0]}
+            color={look.accent}
+          />
+        </group>
+      )}
+      {a.has('bow') && (
+        <group position={[0.17 * big, 0.22 * big, 0.06]} rotation={[0, 0, -0.5]}>
+          {[-1, 1].map((side) => (
+            <group key={side} position={[side * 0.065, 0, 0]} scale={[1, 0.7, 0.5]}>
+              <Ball radius={0.065} color={look.accent} />
+            </group>
+          ))}
+          <Ball radius={0.03} color={look.accent} />
+        </group>
+      )}
+      {a.has('glasses') && (
+        <group position={[0, -0.015, HEAD_R + 0.012]}>
+          {[-0.09, 0.09].map((x) => (
+            <Torus
+              key={x}
+              radius={0.058}
+              tube={0.011}
+              position={[x, 0, 0]}
+              color={FACE.eye}
+              outline={false}
+            />
+          ))}
+          <Box size={[0.06, 0.012, 0.012]} position={[0, 0.01, 0]} color={FACE.eye} outline={false} />
+        </group>
+      )}
+      {a.has('headphones') && (
+        <group scale={big}>
+          <Torus radius={0.29} tube={0.022} arc={Math.PI} position={[0, 0.02, -0.02]} color={FACE.eye} />
+          {[-1, 1].map((side) => (
+            <Cylinder
+              key={side}
+              top={0.08}
+              height={0.07}
+              position={[side * 0.28, 0, -0.01]}
+              rotation={[0, 0, Math.PI / 2]}
+              color={look.accent}
+            />
+          ))}
+        </group>
+      )}
+    </>
+  )
+}
+
+function Scarf({ look, hip }: { look: Look; hip: number }) {
+  if (!look.accessories.has('scarf')) return null
+  return (
+    <>
+      <Torus
+        radius={0.13}
+        tube={0.055}
+        position={[0, hip + 0.35, 0]}
+        rotation={[Math.PI / 2, 0, 0]}
+        color={look.accent}
+      />
+      <Box
+        size={[0.07, 0.16, 0.04]}
+        position={[0.07, hip + 0.25, 0.16]}
+        rotation={[0.25, 0, 0.1]}
+        color={look.accent}
+      />
+    </>
   )
 }
 
@@ -222,6 +373,10 @@ export function Bean3D({
 }) {
   const { reducedMotion } = useScene()
   const { colors } = avatar
+  const look = lookOf(avatar)
+  const hatOn = look.accessories.has('beanie') || look.accessories.has('cap')
+  const thigh = look.bottom === 'skirt' ? colors.skin : colors.body
+  const shin = look.bottom === 'trousers' ? colors.body : colors.skin
   const outer = useRef<Group>(null)
   const body = useRef<Group>(null)
   const head = useRef<Group>(null)
@@ -309,11 +464,23 @@ export function Bean3D({
       onPointerOver={onSelect ? () => (document.body.style.cursor = 'pointer') : undefined}
       onPointerOut={onSelect ? () => (document.body.style.cursor = '') : undefined}
     >
-      <Leg pose={pose} color={colors.body} innerRef={legL} x={-0.075} />
-      <Leg pose={pose} color={colors.body} innerRef={legR} x={0.075} />
+      <Leg pose={pose} upper={thigh} lower={shin} innerRef={legL} x={-0.075} />
+      <Leg pose={pose} upper={thigh} lower={shin} innerRef={legR} x={0.075} />
       <group ref={body}>
-        <Cylinder top={0.17} bottom={0.18} height={0.1} position={[0, hip + 0.04, 0]} color={colors.body} />
+        {look.bottom === 'skirt' ? (
+          <Cylinder
+            top={0.17}
+            bottom={0.27}
+            height={0.17}
+            position={[0, hip + 0.02, 0]}
+            color={colors.body}
+          />
+        ) : (
+          <Cylinder top={0.17} bottom={0.18} height={0.1} position={[0, hip + 0.04, 0]} color={colors.body} />
+        )}
         <Cylinder top={0.14} bottom={0.18} height={0.26} position={[0, hip + 0.2, 0]} color={colors.top} />
+        <TopDetails look={look} top={colors.top} hip={hip} />
+        <Scarf look={look} hip={hip} />
         {[-1, 1].map((side) => (
           <group
             key={side}
@@ -331,7 +498,8 @@ export function Bean3D({
             <Ball radius={HEAD_R} detail={2} color={colors.skin} />
           </group>
           <Face />
-          <Hair style={hairOf(avatar)} color={colors.hair} />
+          <Hair style={look.hair} color={colors.hair} hat={hatOn} />
+          <HeadAccessories look={look} />
         </group>
       </group>
     </group>

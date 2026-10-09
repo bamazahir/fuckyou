@@ -1,5 +1,5 @@
 begin;
-select plan(4);
+select plan(9);
 
 select tests.create_user('00000000-0000-0000-0000-0000000000d1', 'hair@example.com');
 select tests.act_as('00000000-0000-0000-0000-0000000000d1');
@@ -15,6 +15,24 @@ select throws_ok(
 select lives_ok(
   $$ update public.profiles set avatar = tests.avatar() where id = auth.uid() $$,
   'avatars without a hairstyle still work');
+
+select lives_ok(
+  $$ update public.profiles set avatar = jsonb_set(tests.avatar(), '{colors,accent}', '"#E0654A"')
+       || '{"outfit":{"top":"hoodie","bottom":"skirt"},"accessories":["beanie","glasses","scarf"]}'
+     where id = auth.uid() $$,
+  'an outfit, an accent color and starter accessories are accepted');
+select throws_ok(
+  $$ update public.profiles set avatar = tests.avatar() || '{"outfit":{"top":"tuxedo"}}' where id = auth.uid() $$,
+  '23514', null, 'unknown outfit pieces are rejected');
+select throws_ok(
+  $$ update public.profiles set avatar = tests.avatar() || '{"accessories":["crown"]}' where id = auth.uid() $$,
+  '23514', null, 'unknown accessories are rejected');
+select throws_ok(
+  $$ update public.profiles set avatar = tests.avatar() || '{"accessories":["beanie","cap"]}' where id = auth.uid() $$,
+  '23514', null, 'only one hat at a time');
+select throws_ok(
+  $$ update public.profiles set avatar = jsonb_set(tests.avatar(), '{colors,accent}', '"red"') where id = auth.uid() $$,
+  '23514', null, 'the accent color must be a hex color');
 
 select * from finish();
 rollback;

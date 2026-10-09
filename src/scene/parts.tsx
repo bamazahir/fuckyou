@@ -5,6 +5,8 @@ import {
   CapsuleGeometry,
   CylinderGeometry,
   IcosahedronGeometry,
+  SphereGeometry,
+  TorusGeometry,
   type BufferGeometry,
 } from 'three'
 import { cachedGeometry, hull, solid } from './cache'
@@ -86,4 +88,29 @@ export function Capsule({ radius, length, ...props }: PartProps & { radius: numb
       {...props}
     />
   )
+}
+
+/** Ring in the xy plane (rotate it to lie flat). `arc` < 2π makes an arch, starting from +x. */
+export function Torus({
+  radius,
+  tube,
+  arc = Math.PI * 2,
+  ...props
+}: PartProps & { radius: number; tube: number; arc?: number }) {
+  const { outline: t } = useScene()
+  const geometry = cachedGeometry(
+    `tor${radius},${tube},${arc}`,
+    () => new TorusGeometry(radius, tube, 6, 16, arc),
+  )
+  const s = (tube + t) / tube
+  return <Part geometry={geometry} grow={[1 + (t / radius) * 0.5, 1 + (t / radius) * 0.5, s]} {...props} />
+}
+
+/** Open spherical cap (top of a sphere down to `theta` radians from the pole), e.g. a hat crown. */
+export function Dome({ radius, theta, ...props }: PartProps & { radius: number; theta: number }) {
+  const geometry = cachedGeometry(
+    `dome${radius},${theta}`,
+    () => new SphereGeometry(radius, 12, 6, 0, Math.PI * 2, 0, theta),
+  )
+  return <Part geometry={geometry} grow={[1, 1, 1]} {...props} outline={false} />
 }

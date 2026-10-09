@@ -11,12 +11,22 @@ test('My Room shows your bean in the 3D room and lets you recolor it', async ({ 
 
   await page.getByRole('button', { name: 'Change bean' }).click()
   const dialog = page.getByRole('dialog', { name: 'Your bean' })
-  await dialog.locator('label.swatch', { has: page.getByLabel('Hair #C2523C') }).click()
   await dialog.getByText('Curly', { exact: true }).click()
+  await dialog.getByText('Hoodie', { exact: true }).click()
+  await dialog.getByText('Glasses', { exact: true }).click()
+  await dialog.getByRole('tab', { name: 'Colors' }).click()
+  await dialog.locator('label.swatch', { has: page.getByLabel('Hair #C2523C') }).click()
   await dialog.getByRole('button', { name: 'Save' }).click()
   await expect(page.getByText('Bean updated')).toBeVisible()
   const patch = state.calls.find((c) => c.name === 'PATCH profiles')
-  expect(patch?.body).toMatchObject({ avatar: { hair: 'curly', colors: { hair: '#C2523C' } } })
+  expect(patch?.body).toMatchObject({
+    avatar: {
+      hair: 'curly',
+      outfit: { top: 'hoodie' },
+      accessories: ['glasses'],
+      colors: { hair: '#C2523C' },
+    },
+  })
 })
 
 test('Study here opens your personal room with the timer', async ({ page }) => {
