@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { rovingKeys } from '../../components/roving'
 import { LoadFailed } from '../../components/LoadFailed'
-import { Bean } from '../../components/Bean'
+import { BeanPortrait } from '../../components/BeanPortrait'
 import { copy } from '../../content/copy'
 import { shortDuration } from '../../core/room'
 import type { LeaderboardTab, LeaderRow } from '../../lib/db'
@@ -66,7 +66,7 @@ export function Leaderboard({
         {(rows ?? []).map((r) => (
           <li key={r.user_id} className="flex items-center gap-3 py-2">
             <span className="font-display w-6 text-right text-lg font-bold tabular-nums">{r.rank}</span>
-            <Bean avatar={r.avatar} size={28} title={r.display_name} />
+            <BeanPortrait avatar={r.avatar} size={28} title={r.display_name} />
             <span className="flex-1 truncate font-bold">
               {r.display_name}
               {r.user_id === meId && (

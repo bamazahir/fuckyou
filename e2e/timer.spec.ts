@@ -29,7 +29,7 @@ test('a pomodoro runs, ends early, takes a note and shows up in history', async 
   await expect(dialog).toBeHidden()
   await expect(page.getByText(/^Break · 5 min$/)).toBeVisible()
 
-  await page.getByRole('link', { name: 'Profile' }).click()
+  await page.getByRole('link', { name: 'Stats' }).click()
   await expect(page.getByText('finished the data table')).toBeVisible()
 })
 

@@ -55,3 +55,17 @@ export function remaining(
 export function nextRot(def: ItemDef, rot: Rot): Rot {
   return def.layer === 'wall' ? rot : (((rot + 1) % 4) as Rot)
 }
+
+/** A ready-made layout, keeping only as many of each thing as you own (the rest is left out). */
+export function applyTemplate(
+  template: readonly LayoutItem[],
+  owned: ReadonlyMap<string, number>,
+): LayoutItem[] {
+  const left = new Map(owned)
+  return template.filter((item) => {
+    const n = left.get(item.item_id) ?? 0
+    if (n <= 0) return false
+    left.set(item.item_id, n - 1)
+    return true
+  })
+}

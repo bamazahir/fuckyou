@@ -1,5 +1,5 @@
 import type { Avatar } from '../lib/db'
-import { Bean } from './Bean'
+import { BeanPortrait } from './BeanPortrait'
 
 /** Overlapping beans for "who's here" (room cards, invite preview). */
 export function AvatarStack({
@@ -14,7 +14,7 @@ export function AvatarStack({
     <div className="flex items-end" aria-label={people.map((p) => p.display_name).join(', ')}>
       {people.slice(0, 4).map((p, i) => (
         <span key={`${p.display_name}-${i}`} className={i > 0 ? '-ml-3' : ''}>
-          <Bean avatar={p.avatar} size={size} title={p.display_name} />
+          <BeanPortrait avatar={p.avatar} size={size} title={p.display_name} />
         </span>
       ))}
     </div>

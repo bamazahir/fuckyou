@@ -1,10 +1,21 @@
 import { copy } from '../content/copy'
 
-/** "Couldn't load this" with a Retry button: the error state for anything fetched (SPEC M7). */
-export function LoadFailed({ onRetry, compact = false }: { onRetry: () => void; compact?: boolean }) {
+/**
+ * "Couldn't load this" with a Retry button: the error state for anything fetched (SPEC M7). Pass the
+ * error code when there is one, so an un-migrated database says so instead of blaming the connection.
+ */
+export function LoadFailed({
+  onRetry,
+  compact = false,
+  code = null,
+}: {
+  onRetry: () => void
+  compact?: boolean
+  code?: string | null
+}) {
   return (
     <div role="alert" className={compact ? 'flex flex-wrap items-center gap-3 text-sm' : 'card p-5'}>
-      <p>{copy.offline.failed}</p>
+      <p>{code === 'schema_outdated' ? copy.errors.schema_outdated : copy.offline.failed}</p>
       <button type="button" className={`btn btn-secondary ${compact ? '' : 'mt-3'}`} onClick={onRetry}>
         {copy.offline.retry}
       </button>

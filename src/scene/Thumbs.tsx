@@ -1,5 +1,5 @@
-// Renders one catalog item at a time into a small hidden canvas and keeps a PNG of it (shop thumbnails,
-// studyroom-look §3: same lighting, 3/4 iso view, transparent background).
+// Renders one picture at a time into a small hidden canvas and keeps a PNG of it: shop items (3/4 iso
+// view, studyroom-look §3) and bean portraits (head and shoulders, from the front). Transparent background.
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Box3, type Group, type OrthographicCamera } from 'three'
@@ -7,13 +7,14 @@ import { CATALOG } from '../content/layouts'
 import { isoFrame, type Vec3 } from '../core/iso'
 import { useThumbs } from '../stores/thumbs'
 import { SceneContext, type SceneEnv } from './context'
+import { Bean3D } from './Bean3D'
 import { ItemModel } from './models'
 import { LIGHT, readSceneColors } from './palette'
 
 const PX = 192
 
 function Studio({ itemKey }: { itemKey: string }) {
-  const id = itemKey.split(':')[2] ?? ''
+  const id = itemKey.split(':')[3] ?? ''
   const def = CATALOG.get(id)
   const done = useThumbs((s) => s.done)
   const get = useThree((s) => s.get)
@@ -75,6 +76,73 @@ function Studio({ itemKey }: { itemKey: string }) {
   )
 }
 
+function BeanStudio({ beanKey }: { beanKey: string }) {
+  const avatar = useThumbs((s) => s.beans[beanKey])
+  const done = useThumbs((s) => s.done)
+  const get = useThree((s) => s.get)
+  const frames = useRef(0)
+  const group = useRef<Group>(null)
+  const [zoom, setZoom] = useState(200)
+
+  useLayoutEffect(() => {
+    if (!avatar) done(beanKey, '')
+  }, [avatar, done, beanKey])
+
+  // Head and shoulders: the top 62% of the standing bean, seen from the front and a little above.
+  useLayoutEffect(() => {
+    const g = group.current
+    if (!g) return
+    const box = new Box3().setFromObject(g)
+    if (box.isEmpty()) return
+    const h = box.max.y - box.min.y
+    const crop = h * 0.62
+    const cy = box.max.y - crop / 2 + h * 0.02
+    const camera = get().camera as OrthographicCamera
+    camera.zoom = (PX / crop) * 0.92
+    camera.position.set(0, cy + 2.2, 10)
+    camera.lookAt(0, cy, 0)
+    camera.updateProjectionMatrix()
+    frames.current = 0
+    setZoom(camera.zoom)
+  }, [avatar, get])
+
+  useFrame(({ gl }) => {
+    frames.current += 1
+    if (frames.current === 4) done(beanKey, gl.domElement.toDataURL('image/png'))
+  })
+
+  const env: SceneEnv = useMemo(
+    () => ({
+      c: readSceneColors(),
+      outline: 1.6 / zoom,
+      lampOn: true,
+      night: false,
+      shadows: false,
+      reducedMotion: true,
+    }),
+    [zoom],
+  )
+  if (!avatar) return null
+  return (
+    <SceneContext.Provider value={env}>
+      <hemisphereLight args={[LIGHT.sky, LIGHT.ground, 1.9]} />
+      <ambientLight intensity={0.7} />
+      <directionalLight position={[3, 6, 10]} color={LIGHT.key} intensity={2} />
+      <group ref={group}>
+        <Bean3D
+          id={beanKey}
+          avatar={avatar}
+          state="idle"
+          position={[0, 0, 0]}
+          facing={0.25}
+          seat="chair"
+          standing
+        />
+      </group>
+    </SceneContext.Provider>
+  )
+}
+
 /** Stays mounted while a screen needs thumbnails: one WebGL context, idle when the queue is empty. */
 export default function ThumbStudio() {
   const next = useThumbs((s) => s.queue[0])
@@ -88,7 +156,12 @@ export default function ThumbStudio() {
         gl={{ preserveDrawingBuffer: true, antialias: true, alpha: true }}
         camera={{ position: [10, 10, 10], zoom: 50, near: 0.1, far: 100 }}
       >
-        {next && <Studio key={next} itemKey={next} />}
+        {next &&
+          (next.startsWith('bean:') ? (
+            <BeanStudio key={next} beanKey={next} />
+          ) : (
+            <Studio key={next} itemKey={next} />
+          ))}
       </Canvas>
     </div>
   )

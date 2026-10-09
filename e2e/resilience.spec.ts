@@ -20,15 +20,19 @@ test('rarely used screens load on demand', async ({ page }) => {
   await expect(page.getByRole('navigation', { name: 'Main' })).toBeVisible()
 })
 
-test('a missing code chunk (after a deploy) offers a reload instead of a blank page', async ({ page }) => {
-  await mockSupabase(page, { profile: readyProfile })
-  await signIn(page)
-  await page.route('**/assets/ShopPage-*.js', (route) => route.abort())
-  await page.goto('/')
-  await expect(page.getByRole('heading', { name: 'No shared rooms yet' })).toBeVisible()
-  await page.goto('/shop')
-  await expect(page.getByRole('heading', { name: 'Studyroom was updated' })).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Reload' })).toBeVisible()
+test.describe('without a service worker', () => {
+  // With the service worker the chunk would come from its precache, which is the happy path.
+  test.use({ serviceWorkers: 'block' })
+  test('a missing code chunk (after a deploy) offers a reload instead of a blank page', async ({ page }) => {
+    await mockSupabase(page, { profile: readyProfile })
+    await signIn(page)
+    await page.route('**/assets/ShopPage-*.js', (route) => route.abort())
+    await page.goto('/')
+    await expect(page.getByRole('heading', { name: 'No shared rooms yet' })).toBeVisible()
+    await page.goto('/shop')
+    await expect(page.getByRole('heading', { name: 'Studyroom was updated' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Reload' })).toBeVisible()
+  })
 })
 
 test('a failed load says so and retries, instead of claiming you have no rooms', async ({ page }) => {

@@ -5,7 +5,7 @@ import { useFrame, type ThreeEvent } from '@react-three/fiber'
 import { useRef, useState, type ReactNode } from 'react'
 import type { Group } from 'three'
 import { FACE, lookOf, type Look } from '../content/avatar'
-import type { Avatar, HairStyle } from '../lib/db'
+import type { Avatar, Expression, HairStyle } from '../lib/db'
 import { useScene } from './context'
 import { Ball, Box, Capsule, Cylinder, Dome, Torus, type V3 } from './parts'
 
@@ -22,20 +22,92 @@ type Pose = 'stand' | 'chair' | 'floor'
 const hash = (s: string) => [...s].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) % 997, 7) / 997
 const easeOut = (t: number) => 1 - (1 - t) ** 3
 
-function Face() {
+type Eyes = 'dot' | 'wide' | 'arc' | 'closed' | 'sleepy' | 'wink'
+type Mouth = 'small' | 'smile' | 'grin' | 'o' | 'flat' | 'tongue' | 'cat'
+
+/** Each expression is a pair of eyes and a mouth (plus brows for "focused"). */
+const FACES: Record<Expression, { eyes: Eyes; mouth: Mouth; brows?: true }> = {
+  happy: { eyes: 'dot', mouth: 'smile' },
+  joyful: { eyes: 'arc', mouth: 'grin' },
+  calm: { eyes: 'closed', mouth: 'small' },
+  focused: { eyes: 'dot', mouth: 'flat', brows: true },
+  sleepy: { eyes: 'sleepy', mouth: 'o' },
+  surprised: { eyes: 'wide', mouth: 'o' },
+  cheeky: { eyes: 'wink', mouth: 'tongue' },
+  cat: { eyes: 'arc', mouth: 'cat' },
+}
+
+const quiet = { outline: false, shadow: false } as const
+
+function Eye({ kind, x, y, z }: { kind: Exclude<Eyes, 'wink'>; x: number; y: number; z: number }) {
+  if (kind === 'arc')
+    // ^ : the top half of a ring
+    return (
+      <Torus
+        radius={0.034}
+        tube={0.011}
+        arc={Math.PI}
+        position={[x, y - 0.012, z]}
+        color={FACE.eye}
+        {...quiet}
+      />
+    )
+  if (kind === 'closed')
+    // ‿ : content, eyes shut
+    return (
+      <Torus
+        radius={0.032}
+        tube={0.01}
+        arc={Math.PI}
+        position={[x, y + 0.012, z]}
+        rotation={[0, 0, Math.PI]}
+        color={FACE.eye}
+        {...quiet}
+      />
+    )
+  if (kind === 'sleepy')
+    return <Box size={[0.07, 0.013, 0.01]} position={[x, y - 0.012, z]} color={FACE.eye} {...quiet} />
+  const big = kind === 'wide'
+  return (
+    <group position={[x, y, z]}>
+      <group scale={big ? [1.15, 1.25, 0.7] : [1, 1.35, 0.7]}>
+        <Ball radius={big ? 0.046 : 0.04} color={FACE.eye} {...quiet} />
+      </group>
+      <Ball
+        radius={big ? 0.017 : 0.013}
+        detail={0}
+        position={[0.012, 0.022, 0.03]}
+        color={FACE.shine}
+        {...quiet}
+      />
+      {big && (
+        <Ball radius={0.008} detail={0} position={[-0.014, -0.016, 0.03]} color={FACE.shine} {...quiet} />
+      )}
+    </group>
+  )
+}
+
+function Face({ expression }: { expression: Expression }) {
   const z = HEAD_R * 0.9
   const y = -0.02
-  const quiet = { outline: false, shadow: false } as const
+  const { eyes, mouth, brows } = FACES[expression]
+  const my = y - 0.085
+  const mz = z - 0.01
   return (
     <>
-      {[-0.09, 0.09].map((x) => (
-        <group key={x} position={[x, y, z]}>
-          <group scale={[1, 1.35, 0.7]}>
-            <Ball radius={0.04} color={FACE.eye} {...quiet} />
-          </group>
-          <Ball radius={0.013} detail={0} position={[0.012, 0.022, 0.03]} color={FACE.shine} {...quiet} />
-        </group>
-      ))}
+      <Eye kind={eyes === 'wink' ? 'dot' : eyes} x={-0.09} y={y} z={z} />
+      <Eye kind={eyes === 'wink' ? 'arc' : eyes} x={0.09} y={y} z={z} />
+      {brows &&
+        [-0.09, 0.09].map((x) => (
+          <Box
+            key={x}
+            size={[0.07, 0.014, 0.01]}
+            position={[x, y + 0.085, z - 0.02]}
+            rotation={[0, 0, x < 0 ? -0.35 : 0.35]}
+            color={FACE.eye}
+            {...quiet}
+          />
+        ))}
       {[-0.16, 0.16].map((x) => (
         <Cylinder
           key={x}
@@ -48,7 +120,53 @@ function Face() {
           {...quiet}
         />
       ))}
-      <Box size={[0.05, 0.014, 0.01]} position={[0, y - 0.085, z - 0.01]} color={FACE.eye} {...quiet} />
+      {mouth === 'small' && (
+        <Box size={[0.05, 0.014, 0.01]} position={[0, my, mz]} color={FACE.eye} {...quiet} />
+      )}
+      {mouth === 'flat' && (
+        <Box size={[0.07, 0.014, 0.01]} position={[0, my, mz]} color={FACE.eye} {...quiet} />
+      )}
+      {(mouth === 'smile' || mouth === 'tongue') && (
+        <Torus
+          radius={0.03}
+          tube={0.009}
+          arc={Math.PI}
+          position={[0, my + 0.018, mz]}
+          rotation={[0, 0, Math.PI]}
+          color={FACE.eye}
+          {...quiet}
+        />
+      )}
+      {mouth === 'tongue' && (
+        <group position={[0.01, my - 0.016, mz - 0.004]} scale={[1, 0.8, 0.5]}>
+          <Ball radius={0.016} color={FACE.tongue} {...quiet} />
+        </group>
+      )}
+      {mouth === 'grin' && (
+        // D on its side: a flattened bowl
+        <group position={[0, my + 0.008, mz - 0.006]} rotation={[0, 0, Math.PI]} scale={[1, 0.9, 0.35]}>
+          <Dome radius={0.04} theta={Math.PI / 2} color={FACE.eye} {...quiet} />
+        </group>
+      )}
+      {mouth === 'o' && (
+        <group position={[0, my - 0.004, mz]} scale={[1, 1.2, 0.45]}>
+          <Ball radius={0.019} color={FACE.eye} {...quiet} />
+        </group>
+      )}
+      {mouth === 'cat' &&
+        // ω
+        [-0.019, 0.019].map((x) => (
+          <Torus
+            key={x}
+            radius={0.019}
+            tube={0.008}
+            arc={Math.PI}
+            position={[x, my + 0.012, mz]}
+            rotation={[0, 0, Math.PI]}
+            color={FACE.eye}
+            {...quiet}
+          />
+        ))}
     </>
   )
 }
@@ -403,6 +521,7 @@ export function Bean3D({
   seat,
   from,
   onSelect,
+  standing = false,
 }: {
   id: string
   avatar: Avatar
@@ -414,6 +533,8 @@ export function Bean3D({
   /** Where the walk-in starts; omit to appear in place. Position and facing are applied per frame. */
   from?: V3
   onSelect?: () => void
+  /** Stand instead of sitting (portraits and the editor preview). */
+  standing?: boolean
 }) {
   const { reducedMotion } = useScene()
   const { colors } = avatar
@@ -431,7 +552,7 @@ export function Bean3D({
   const born = useRef<number | null>(null)
   const [walking, setWalking] = useState(() => from !== undefined && !reducedMotion)
   const phase = hash(id) * Math.PI * 2
-  const pose: Pose = walking ? 'stand' : seat
+  const pose: Pose = walking || standing ? 'stand' : seat
   const hip = pose === 'stand' ? HIP_STAND : HIP_SIT
   const [restL, restR] = walking ? [0, 0] : ARM_REST[state]
 
@@ -541,7 +662,7 @@ export function Bean3D({
           <group scale={[1, 0.94, 1]}>
             <Ball radius={HEAD_R} detail={2} color={colors.skin} />
           </group>
-          <Face />
+          <Face expression={look.expression} />
           <Hair style={look.hair} color={colors.hair} hat={hatOn} />
           <HeadAccessories look={look} hair={colors.hair} />
         </group>

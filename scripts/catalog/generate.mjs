@@ -1,10 +1,11 @@
 // Keeps SQL in step with the JSON the app uses (SPEC §15 M5):
-//  - the catalog seed block inside the M5 migration, from src/content/catalog.json
+//  - the catalog seed block inside the latest catalog migration, from src/content/catalog.json
 //  - the pgTAP layout parity test, from src/core/__fixtures__/layouts.json
 // Usage: node scripts/catalog/generate.mjs --write   (or --check: exit 1 if anything is stale)
 import { readFileSync, writeFileSync } from 'node:fs'
 
-const MIGRATION = 'supabase/migrations/20261011000000_m5_coins_shop.sql'
+// The newest migration that carries the seed block (earlier ones keep the seed they shipped with).
+const MIGRATION = 'supabase/migrations/20261013000000_m8_hub.sql'
 const FIXTURE_TEST = 'supabase/tests/database/08_m5_layout_fixtures.test.sql'
 const BEGIN = '-- catalog:begin'
 const END = '-- catalog:end'

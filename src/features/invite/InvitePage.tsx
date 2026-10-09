@@ -2,7 +2,10 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { AvatarStack } from '../../components/AvatarStack'
 import { LoadFailed } from '../../components/LoadFailed'
-import { RoomScene } from '../../components/RoomScene'
+import { NoWebGL } from '../../components/NoWebGL'
+import { DEFAULT_SHARED, SHARED_SIZE } from '../../content/layouts'
+import { RoomView } from '../room/RoomView'
+import { ThumbRenderer } from '../shop/ItemThumb'
 import { ErrorText, Screen } from '../../components/Screen'
 import { useDaypart } from '../../components/useDaypart'
 import { copy, errorMessage } from '../../content/copy'
@@ -53,11 +56,25 @@ export function InvitePage() {
 
   return (
     <Screen>
+      <ThumbRenderer />
       <div className="card card-raised overflow-hidden">
-        <RoomScene
-          beans={(preview?.studying ?? []).map((p) => p.avatar)}
+        <RoomView
+          className="h-56 sm:h-72"
+          size={SHARED_SIZE}
+          layout={DEFAULT_SHARED}
+          walkIn={false}
+          avatars={(preview?.studying ?? []).map((p, i) => ({
+            id: `${i}`,
+            name: p.display_name,
+            avatar: p.avatar,
+            state: 'focus' as const,
+            clock: null,
+            ariaLabel: p.display_name,
+          }))}
           night={daypart === 'night'}
+          lampOn
           label={preview?.name ?? ''}
+          fallback={<NoWebGL />}
         />
         <div className="border-t-2 border-line p-6">
           {preview ? (

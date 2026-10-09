@@ -57,7 +57,7 @@ test('decorating places a thing from your tray and saves the layout', async ({ p
   const saved = state.calls.find((c) => c.name === 'save_layout')?.body
   expect(saved).toMatchObject({ p_room_id: 'room-personal' })
   expect(saved?.p_layout).toContainEqual({ item_id: 'crate', x: 4, z: 4, rot: 0 })
-  expect(saved?.p_layout).toHaveLength(7)
+  expect(saved?.p_layout).toHaveLength(15)
 })
 
 test('anyone in a room can give coins to its bank', async ({ page }) => {

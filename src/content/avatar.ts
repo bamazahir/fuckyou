@@ -1,4 +1,4 @@
-import type { Accessory, Avatar, AvatarColors, BottomStyle, HairStyle, TopStyle } from '../lib/db'
+import type { Accessory, Avatar, AvatarColors, BottomStyle, Expression, HairStyle, TopStyle } from '../lib/db'
 
 // Curated swatches only (studyroom-look §2): skin ×8, hair ×10, body/top ×16.
 export const SKIN = [
@@ -54,6 +54,21 @@ export const DEFAULT_ACCENT = '#E0654A'
 
 export const HAIR_STYLES: readonly HairStyle[] = ['short', 'long', 'curly', 'bun']
 
+/** Faces your bean can make (all free). The SQL list in private.valid_avatar matches this one. */
+export const EXPRESSIONS: readonly Expression[] = [
+  'happy',
+  'joyful',
+  'calm',
+  'focused',
+  'sleepy',
+  'surprised',
+  'cheeky',
+  'cat',
+]
+
+export const expressionOf = (avatar: Avatar): Expression =>
+  avatar.expression && EXPRESSIONS.includes(avatar.expression) ? avatar.expression : 'happy'
+
 export const hairOf = (avatar: Avatar): HairStyle =>
   avatar.hair && HAIR_STYLES.includes(avatar.hair) ? avatar.hair : 'short'
 
@@ -80,6 +95,7 @@ export const ACCESSORIES: readonly {
 ]
 
 export interface Look {
+  expression: Expression
   hair: HairStyle
   top: TopStyle
   bottom: BottomStyle
@@ -93,6 +109,7 @@ export function lookOf(avatar: Avatar): Look {
   const bottom = avatar.outfit?.bottom
   const known = new Set(ACCESSORIES.map((a) => a.id))
   return {
+    expression: expressionOf(avatar),
     hair: hairOf(avatar),
     top: top && TOP_STYLES.includes(top) ? top : 'tee',
     bottom: bottom && BOTTOM_STYLES.includes(bottom) ? bottom : 'trousers',
@@ -115,6 +132,7 @@ export const FACE = {
   eye: '#1E1A17',
   shine: '#FFFFFF',
   blush: '#F29A8E',
+  tongue: '#E8737A',
   shoe: '#3A302A',
   collar: '#FBF7F0',
 } as const

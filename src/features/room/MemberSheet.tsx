@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Bean } from '../../components/Bean'
+import { BeanPortrait } from '../../components/BeanPortrait'
 import { Dialog } from '../../components/Dialog'
 import { ErrorText } from '../../components/Screen'
 import { copy } from '../../content/copy'
@@ -116,7 +116,7 @@ export function MemberSheet({
   return (
     <Dialog title={member.display_name} onClose={onClose} labelledBy="member-title">
       <div className="mt-2 flex items-center gap-4">
-        <Bean avatar={member.avatar} size={64} title={member.display_name} />
+        <BeanPortrait avatar={member.avatar} size={64} title={member.display_name} />
         <div className="min-w-0">
           <p className="text-muted">@{member.handle}</p>
           {member.role !== 'member' && (

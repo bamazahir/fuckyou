@@ -1,6 +1,6 @@
 import { useMemo, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Bean } from '../../components/Bean'
+import { BeanPreview } from '../../components/BeanPreview'
 import { ErrorText, Screen } from '../../components/Screen'
 import { AvatarSwatches } from '../../components/AvatarSwatches'
 import { randomAvatar } from '../../content/avatar'
@@ -212,7 +212,7 @@ export function OnboardingPage() {
           <div>
             <StepHeader n={3} title={t.bean.title} />
             <div className="mt-4 flex justify-center">
-              <Bean avatar={avatar} size={110} title={displayName} />
+              <BeanPreview avatar={avatar} size={180} title={displayName} />
             </div>
             <AvatarSwatches avatar={avatar} onChange={setAvatar} />
             <ErrorText code={error} />

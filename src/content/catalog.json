@@ -321,7 +321,22 @@
     { "id": "shades", "name": "Sunglasses", "slot": "face", "price": 300 }
   ],
   "starter": {
-    "personal": ["rug_stripe", "desk_oak", "chair_wood", "lamp_floor", "plant_pot", "window_double"],
+    "personal": [
+      "rug_stripe",
+      "desk_oak",
+      "chair_wood",
+      "lamp_floor",
+      "plant_pot",
+      "window_double",
+      "bookshelf_tall",
+      "plant_tall",
+      "beanbag",
+      "book_pile",
+      "side_table",
+      "poster",
+      "clock",
+      "corkboard"
+    ],
     "shared": [
       "rug_long",
       "desk_oak",
@@ -333,7 +348,23 @@
       "chair_wood",
       "chair_wood",
       "bookshelf",
-      "window_double"
+      "window_double",
+      "plant_pot",
+      "plant_pot",
+      "plant_tall",
+      "lamp_floor",
+      "lamp_floor",
+      "beanbag",
+      "beanbag",
+      "side_table",
+      "book_pile",
+      "radio",
+      "whiteboard",
+      "corkboard",
+      "clock",
+      "poster",
+      "wall_shelf",
+      "fairy_lights"
     ]
   }
 }

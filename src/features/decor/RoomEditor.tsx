@@ -2,13 +2,15 @@ import { useCallback, useMemo, useState, type KeyboardEvent } from 'react'
 import { ErrorText } from '../../components/Screen'
 import { copy } from '../../content/copy'
 import { CATALOG } from '../../content/layouts'
-import { canPlace, nextRot, placement, remaining } from '../../core/edit'
+import { applyTemplate, canPlace, nextRot, placement, remaining } from '../../core/edit'
+import { FLOORS, WALLS, type RoomStyle } from '../../content/roomStyles'
+import type { LayoutTemplate } from '../../content/layouts'
 import type { LayoutItem, Rot } from '../../core/grid'
 import { hasWebGL } from '../../lib/webgl'
 import type { SceneEdit } from '../../scene/IsoRoom'
 import { useUi } from '../../stores/ui'
 import { RoomView } from '../room/RoomView'
-import { ItemThumb, ThumbRenderer } from '../shop/ItemThumb'
+import { ItemThumb } from '../shop/ItemThumb'
 
 const t = copy.decor
 
@@ -23,6 +25,8 @@ type Mode =
 export function RoomEditor({
   size,
   initial,
+  initialStyle = {},
+  templates = [],
   owned,
   title,
   trayTitle,
@@ -32,15 +36,19 @@ export function RoomEditor({
 }: {
   size: number
   initial: readonly LayoutItem[]
+  initialStyle?: RoomStyle
+  /** Ready-made arrangements to start from. */
+  templates?: readonly LayoutTemplate[]
   owned: ReadonlyMap<string, number>
   title: string
   trayTitle: string
   night: boolean
-  onSave: (layout: LayoutItem[]) => Promise<string | null>
+  onSave: (layout: LayoutItem[], style: RoomStyle) => Promise<string | null>
   onDone: () => void
 }) {
   const toast = useUi((s) => s.toast)
   const [layout, setLayout] = useState<LayoutItem[]>(() => [...initial])
+  const [style, setStyle] = useState<RoomStyle>(initialStyle)
   const [mode, setMode] = useState<Mode>({ kind: 'idle' })
   const [selected, setSelected] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -52,7 +60,9 @@ export function RoomEditor({
     placing && placing.replacing !== null ? layout.filter((_, i) => i !== placing.replacing) : layout
   const ghost = placing && def ? placement(def, placing.cell, placing.rot, size) : null
   const ghostOk = ghost ? canPlace(shown, ghost, size, CATALOG) : false
-  const changed = JSON.stringify(layout) !== JSON.stringify(initial)
+  const changed =
+    JSON.stringify(layout) !== JSON.stringify(initial) ||
+    JSON.stringify(style) !== JSON.stringify(initialStyle)
   const left = useMemo(() => remaining(owned, layout), [owned, layout])
   const tray = [...left.entries()].filter(([id, n]) => n > 0 && CATALOG.has(id))
 
@@ -154,7 +164,7 @@ export function RoomEditor({
 
   async function save() {
     setBusy(true)
-    const err = await onSave(layout)
+    const err = await onSave(layout, style)
     setBusy(false)
     if (err) return setError(err)
     toast(t.saved)
@@ -175,7 +185,6 @@ export function RoomEditor({
   const selectedItem = selected !== null ? layout[selected] : undefined
   return (
     <div className="space-y-4">
-      <ThumbRenderer />
       <header className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-display text-3xl font-bold">{title}</h1>
         <div className="flex gap-2">
@@ -215,6 +224,7 @@ export function RoomEditor({
             label={title}
             walkIn={false}
             edit={edit}
+            roomStyle={style}
             fallback={null}
           />
         </div>
@@ -253,6 +263,67 @@ export function RoomEditor({
         </div>
       </div>
       <ErrorText code={error} />
+      {templates.length > 0 && (
+        <section aria-labelledby="layouts-title" className="card p-4">
+          <h2 id="layouts-title" className="font-display text-lg font-bold">
+            {t.layouts}
+          </h2>
+          <p className="text-sm text-muted">{t.layoutsHint}</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {templates.map((tpl) => (
+              <button
+                key={tpl.id}
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => {
+                  setMode({ kind: 'idle' })
+                  setSelected(null)
+                  setLayout(applyTemplate(tpl.layout, owned))
+                }}
+              >
+                {tpl.name}
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
+      <section aria-labelledby="finish-title" className="card p-4">
+        <h2 id="finish-title" className="font-display text-lg font-bold">
+          {t.finishes}
+        </h2>
+        {(
+          [
+            ['wall', t.walls, WALLS],
+            ['floor', t.floors, FLOORS],
+          ] as const
+        ).map(([key, legend, list]) => (
+          <fieldset key={key} className="mt-3">
+            <legend className="text-sm font-bold">{legend}</legend>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {list.map((f) => {
+                const on = (style[key] ?? 'theme') === f.id
+                return (
+                  <label key={f.id} className={`chip gap-2 px-3 text-sm ${on ? 'chip-on' : ''}`}>
+                    <input
+                      type="radio"
+                      name={`finish-${key}`}
+                      checked={on}
+                      onChange={() => setStyle((s) => ({ ...s, [key]: f.id }))}
+                      className="sr-only"
+                    />
+                    <span
+                      aria-hidden="true"
+                      className="inline-block size-4 rounded-full border-2 border-line"
+                      style={{ background: f.color ?? 'linear-gradient(135deg, var(--wall), var(--wood))' }}
+                    />
+                    {f.name}
+                  </label>
+                )
+              })}
+            </div>
+          </fieldset>
+        ))}
+      </section>
       <section aria-labelledby="tray-title" className="card p-4">
         <h2 id="tray-title" className="font-display text-lg font-bold">
           {trayTitle}

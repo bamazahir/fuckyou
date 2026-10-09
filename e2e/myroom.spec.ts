@@ -6,11 +6,13 @@ test('My Room shows your bean in the 3D room and lets you recolor it', async ({ 
   await signIn(page)
   await page.goto('/me')
   await expect(page.getByRole('heading', { name: 'My Room' })).toBeVisible()
-  await expect(page.locator('canvas')).toBeVisible()
+  await expect(page.locator('main canvas').first()).toBeVisible()
   await expect(page.getByRole('button', { name: /^Ana, / })).toBeVisible()
 
   await page.getByRole('button', { name: 'Change bean' }).click()
   const dialog = page.getByRole('dialog', { name: 'Your bean' })
+  await dialog.getByText('Sleepy', { exact: true }).click()
+  await dialog.getByRole('tab', { name: 'Style' }).click()
   await dialog.getByText('Curly', { exact: true }).click()
   await dialog.getByText('Hoodie', { exact: true }).click()
   await dialog.getByText('Glasses', { exact: true }).click()
@@ -24,6 +26,7 @@ test('My Room shows your bean in the 3D room and lets you recolor it', async ({ 
       hair: 'curly',
       outfit: { top: 'hoodie' },
       accessories: ['glasses'],
+      expression: 'sleepy',
       colors: { hair: '#C2523C' },
     },
   })

@@ -4,6 +4,7 @@ import {
   ACCESSORIES,
   AVATAR_SLOTS,
   BOTTOM_STYLES,
+  EXPRESSIONS,
   HAIR_STYLES,
   lookOf,
   TOP_STYLES,
@@ -64,12 +65,12 @@ export function AvatarSwatches({
   /** Shop accessories this person owns (the starter ones are always shown). */
   owned?: ReadonlySet<string>
 }) {
-  const [tab, setTab] = useState<'style' | 'colors'>('style')
+  const [tab, setTab] = useState<'face' | 'style' | 'colors'>('face')
   const look = lookOf(avatar)
   return (
     <>
-      <div role="tablist" className="mt-4 grid grid-cols-2 gap-2">
-        {(['style', 'colors'] as const).map((k) => (
+      <div role="tablist" className="mt-4 grid grid-cols-3 gap-2">
+        {(['face', 'style', 'colors'] as const).map((k) => (
           <button
             key={k}
             type="button"
@@ -85,7 +86,19 @@ export function AvatarSwatches({
         ))}
       </div>
 
-      {tab === 'style' ? (
+      {tab === 'face' ? (
+        <div role="tabpanel">
+          <Choice
+            legend={t.expressionLabel}
+            name="expression"
+            options={EXPRESSIONS}
+            value={look.expression}
+            label={(v) => t.expressions[v]}
+            onPick={(expression) => onChange({ ...avatar, expression })}
+            columns="grid-cols-2 sm:grid-cols-4"
+          />
+        </div>
+      ) : tab === 'style' ? (
         <div role="tabpanel">
           <Choice
             legend={t.hairStyle}

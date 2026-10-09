@@ -17,6 +17,7 @@ import { NotFoundPage } from './features/NotFoundPage'
 import { OnboardingPage } from './features/onboarding/OnboardingPage'
 import { ProfilePage } from './features/profile/ProfilePage'
 import { RoomPage } from './features/room/RoomPage'
+import { RoomsPage } from './features/rooms/RoomsPage'
 import { startClockSync } from './lib/servertime'
 import { supabase } from './lib/supabase'
 import { useAuth, type AuthStatus } from './stores/auth'
@@ -35,6 +36,7 @@ const DecorateMyRoomPage = named(() => import('./features/decor/DecoratePage'), 
 const DecorateRoomPage = named(() => import('./features/decor/DecoratePage'), 'DecorateRoomPage')
 const VisitPage = named(() => import('./features/decor/VisitPage'), 'VisitPage')
 const ShopPage = named(() => import('./features/shop/ShopPage'), 'ShopPage')
+const StatsPage = named(() => import('./features/stats/StatsPage'), 'StatsPage')
 
 /** Routes each auth state to the one screen it may see (SPEC §5.1, §8.2 consent gate). */
 function Gate({ allow, children }: { allow: AuthStatus; children: ReactNode }) {
@@ -112,6 +114,8 @@ const router = createBrowserRouter([
           { path: '/room/:roomId/decorate', element: <DecorateRoomPage /> },
           { path: '/visit/:userId', element: <VisitPage /> },
           { path: '/profile', element: <ProfilePage /> },
+          { path: '/rooms', element: <RoomsPage /> },
+          { path: '/stats', element: <StatsPage /> },
           { path: '/room/:roomId', element: <RoomPage /> },
           { path: '/admin', element: <AdminPage /> },
           { path: '*', element: <NotFoundPage /> },

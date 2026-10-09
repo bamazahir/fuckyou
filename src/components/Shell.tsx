@@ -2,12 +2,15 @@ import { Suspense, type ComponentType, type SVGProps } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { APP_NAME } from '../config'
 import { copy } from '../content/copy'
-import { BeanIcon, HomeIcon, LampIcon } from './icons'
+import { BeanIcon, ChartIcon, DoorsIcon, HomeIcon, LampIcon } from './icons'
 import { useDaypart } from './useDaypart'
+import { ThumbRenderer } from '../features/shop/ItemThumb'
 
 const tabs: { to: string; label: string; Icon: ComponentType<SVGProps<SVGSVGElement>> }[] = [
   { to: '/', label: copy.tabs.home, Icon: HomeIcon },
+  { to: '/rooms', label: copy.tabs.rooms, Icon: DoorsIcon },
   { to: '/me', label: copy.tabs.myRoom, Icon: LampIcon },
+  { to: '/stats', label: copy.tabs.stats, Icon: ChartIcon },
   { to: '/profile', label: copy.tabs.profile, Icon: BeanIcon },
 ]
 
@@ -18,7 +21,7 @@ function TabLink({ to, label, Icon }: (typeof tabs)[number]) {
       end={to === '/'}
       className={({ isActive }) =>
         [
-          'flex flex-col items-center gap-1 rounded-xl px-3 py-2 text-xs font-bold md:flex-row md:gap-3 md:text-base',
+          'flex flex-col items-center gap-1 rounded-xl px-2 py-2 text-xs font-bold sm:px-3 md:flex-row md:gap-3 md:text-base',
           isActive ? 'bg-accent text-on-accent' : 'text-on-nav hover:bg-white/10',
         ].join(' ')
       }
@@ -53,6 +56,7 @@ export function Shell() {
           ))}
         </ul>
       </nav>
+      <ThumbRenderer />
       <main
         id="main"
         tabIndex={-1}

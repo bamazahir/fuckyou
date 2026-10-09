@@ -64,6 +64,17 @@ const FALLBACK: Record<Role, string> = {
 
 const mix = (a: string, b: string, t: number) => `#${new Color(a).lerp(new Color(b), t).getHexString()}`
 
+/** A room's own wall and floor finishes (content/roomStyles), over the theme's colors. */
+export function withRoomStyle(c: SceneColors, wall: string | null, floor: string | null): SceneColors {
+  return {
+    ...c,
+    ...(wall ? { wall, wallLow: mix(wall, c.line, 0.14) } : {}),
+    ...(floor
+      ? { floor: mix(floor, c.line, 0.12), floorAlt: mix(floor, c.line, 0.2), slab: mix(floor, c.line, 0.5) }
+      : {}),
+  }
+}
+
 /** Reads the role variables off <html> (set by the theme store) and derives the scene shades. */
 export function readSceneColors(): SceneColors {
   const style = getComputedStyle(document.documentElement)

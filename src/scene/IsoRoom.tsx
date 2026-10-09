@@ -14,7 +14,8 @@ import { useTheme } from '../stores/theme'
 import { Bean3D, BEAN_HEIGHT, type BeanState } from './Bean3D'
 import { SceneContext, useScene, type SceneEnv } from './context'
 import { Cushion, ItemModel } from './models'
-import { LIGHT, readSceneColors } from './palette'
+import { styleColors, type RoomStyle } from '../content/roomStyles'
+import { LIGHT, readSceneColors, withRoomStyle } from './palette'
 import { Box } from './parts'
 
 export interface SceneAvatar {
@@ -42,6 +43,8 @@ export interface IsoRoomProps {
   walkIn?: boolean
   /** Decorating: the whole room is framed, people are hidden, and taps go to these handlers. */
   edit?: SceneEdit
+  /** The room's wall and floor finishes (content/roomStyles). */
+  roomStyle?: RoomStyle | null
 }
 
 export interface SceneEdit {
@@ -439,6 +442,7 @@ export default function IsoRoom({
   onSelect,
   walkIn = true,
   edit,
+  roomStyle,
 }: IsoRoomProps) {
   const [ref, [width, height]] = useElementSize<HTMLDivElement>()
   const theme = useTheme((s) => s.theme)
@@ -450,7 +454,11 @@ export default function IsoRoom({
   // canvas (at most twice, so a broken GPU can't loop).
   const [generation, setGeneration] = useState(0)
   const [firstIds] = useState(() => new Set(avatars.map((a) => a.id)))
-  const colors = useMemo(() => readSceneColors(), [theme, mode]) // eslint-disable-line react-hooks/exhaustive-deps
+  const finish = styleColors(roomStyle)
+  const colors = useMemo(
+    () => withRoomStyle(readSceneColors(), finish.wall, finish.floor),
+    [theme, mode, finish.wall, finish.floor], // eslint-disable-line react-hooks/exhaustive-deps
+  )
   const shadows = useMemo(() => (navigator.hardwareConcurrency ?? 8) > 4, [])
   const seats = useMemo(() => seatList(layout, size, CATALOG), [layout, size])
   const seating = useSeating(

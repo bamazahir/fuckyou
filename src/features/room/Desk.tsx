@@ -1,4 +1,4 @@
-import { Bean } from '../../components/Bean'
+import { BeanPortrait } from '../../components/BeanPortrait'
 import { useNow } from '../../components/useNow'
 import { copy } from '../../content/copy'
 import { timerView } from '../../core/timer'
@@ -49,7 +49,7 @@ export function Desk({
         </span>
       )}
       <span className="relative">
-        <Bean avatar={m.avatar} size={56} title={m.display_name} />
+        <BeanPortrait avatar={m.avatar} size={56} title={m.display_name} />
         <span
           className={`absolute -right-1 bottom-1 h-3.5 w-3.5 rounded-full border-2 border-line ${focusing ? 'bg-good' : 'bg-rest'}`}
           aria-hidden="true"

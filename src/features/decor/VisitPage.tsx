@@ -1,10 +1,11 @@
 import { goBack } from '../../components/goBack'
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { RoomScene } from '../../components/RoomScene'
+import { NoWebGL } from '../../components/NoWebGL'
 import { useDaypart } from '../../components/useDaypart'
 import { copy } from '../../content/copy'
 import { DEFAULT_PERSONAL, PERSONAL_SIZE } from '../../content/layouts'
+import type { RoomStyle } from '../../content/roomStyles'
 import type { LayoutItem } from '../../core/grid'
 import type { Avatar } from '../../lib/db'
 import { rpcErrorCode, supabase } from '../../lib/supabase'
@@ -19,7 +20,7 @@ export function VisitPage() {
   const navigate = useNavigate()
   const daypart = useDaypart()
   const [room, setRoom] = useState<
-    { display_name: string; avatar: Avatar; layout: LayoutItem[] } | null | 'denied'
+    { display_name: string; avatar: Avatar; layout: LayoutItem[]; style?: RoomStyle } | null | 'denied'
   >(null)
   const [failed, setFailed] = useState(false)
   const [attempt, setAttempt] = useState(0)
@@ -31,7 +32,9 @@ export function VisitPage() {
       // Only the server's "no" means not allowed; anything else (offline) can be retried.
       if (code && code !== 'not_allowed') return setFailed(true)
       setRoom(
-        code || !data ? 'denied' : (data as { display_name: string; avatar: Avatar; layout: LayoutItem[] }),
+        code || !data
+          ? 'denied'
+          : (data as { display_name: string; avatar: Avatar; layout: LayoutItem[]; style?: RoomStyle }),
       )
     })
     return () => {
@@ -70,6 +73,7 @@ export function VisitPage() {
           className="h-[min(60svh,520px)] min-h-72 lg:h-[600px]"
           size={PERSONAL_SIZE}
           layout={room.layout.length > 0 ? room.layout : DEFAULT_PERSONAL}
+          roomStyle={room.style}
           walkIn={false}
           avatars={[
             {
@@ -84,9 +88,7 @@ export function VisitPage() {
           night={daypart === 'night'}
           lampOn={daypart === 'night'}
           label={t.title(room.display_name)}
-          fallback={
-            <RoomScene beans={[room.avatar]} night={daypart === 'night'} label={t.title(room.display_name)} />
-          }
+          fallback={<NoWebGL />}
         />
       </div>
     </div>

@@ -1,4 +1,4 @@
-import { RoomScene } from '../../components/RoomScene'
+import { NoWebGL } from '../../components/NoWebGL'
 import { useDaypart } from '../../components/useDaypart'
 import { copy } from '../../content/copy'
 import { DEFAULT_PERSONAL, PERSONAL_SIZE } from '../../content/layouts'
@@ -14,6 +14,7 @@ export function PersonalRoomView({ className }: { className: string }) {
   const daypart = useDaypart()
   const phase = useTimer((s) => s.phase)
   const saved = useWallet((s) => s.personalLayout)
+  const style = useWallet((s) => s.personalStyle)
   if (!profile) return null
   const focusing = phase.name === 'running' && phase.session.room_id === personalRoomId
   const state = focusing ? 'focus' : phase.name === 'break' ? 'break' : 'idle'
@@ -24,6 +25,7 @@ export function PersonalRoomView({ className }: { className: string }) {
       className={className}
       size={PERSONAL_SIZE}
       layout={saved && saved.length > 0 ? saved : DEFAULT_PERSONAL}
+      roomStyle={style}
       walkIn={false}
       avatars={[
         {
@@ -39,14 +41,7 @@ export function PersonalRoomView({ className }: { className: string }) {
       night={daypart === 'night'}
       lampOn={focusing || daypart === 'night'}
       label={copy.myRoom.sceneLabel(profile.display_name)}
-      fallback={
-        <RoomScene
-          beans={[profile.avatar]}
-          night={daypart === 'night'}
-          lampOn={focusing || daypart === 'night'}
-          label={copy.myRoom.title}
-        />
-      }
+      fallback={<NoWebGL />}
     />
   )
 }

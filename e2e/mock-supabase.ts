@@ -23,17 +23,14 @@ export interface MockState {
   inventory: Row[]
   roomInventory: Row[]
   personalLayout: Row[]
+  /** What discover_rooms lists. */
+  discover: Row[]
   calls: { name: string; body: Row }[]
 }
 
 export const starterInventory: Row[] = [
-  'rug_stripe',
-  'desk_oak',
-  'chair_wood',
-  'lamp_floor',
-  'plant_pot',
-  'window_double',
-].map((item_id) => ({ item_id, qty: 1 }))
+  ...catalog.starter.personal.reduce((m, id) => m.set(id, (m.get(id) ?? 0) + 1), new Map<string, number>()),
+].map(([item_id, qty]) => ({ item_id, qty }))
 
 export const noSync: Row = {
   sync_pomodoro: false,
@@ -43,6 +40,8 @@ export const noSync: Row = {
   notify_active: false,
   layout: [],
   bank_coins: 0,
+  style: {},
+  listed: false,
 }
 
 export const otherAvatar = { colors: { body: '#E0654A', skin: '#C98B5E', hair: '#4A3426', top: '#FFC86B' } }
@@ -126,6 +125,7 @@ export async function mockSupabase(page: Page, initial: Partial<MockState> = {})
     inventory: starterInventory,
     roomInventory: [],
     personalLayout: [],
+    discover: [],
     calls: [],
     ...initial,
   }
@@ -304,6 +304,45 @@ export async function mockSupabase(page: Page, initial: Partial<MockState> = {})
           if (body.p_room_id === 'room-personal') state.personalLayout = body.p_layout as Row[]
           else state.roomInfo = { ...state.roomInfo, layout: body.p_layout }
           return route.fulfill({ status: 204 })
+        case 'set_room_style':
+          state.roomInfo = { ...state.roomInfo, style: { wall: body.p_wall, floor: body.p_floor } }
+          return route.fulfill({ status: 204 })
+        case 'set_room_listed':
+          state.roomInfo = { ...state.roomInfo, listed: body.p_listed }
+          return route.fulfill({ status: 204 })
+        case 'discover_rooms':
+          return json(route, state.discover)
+        case 'join_listed_room': {
+          const listed = state.discover.find((r) => r.id === body.p_room_id)
+          if (!listed) return json(route, { message: 'room_not_found' }, 400)
+          state.discover = state.discover.filter((r) => r.id !== body.p_room_id)
+          state.rooms.push(sharedRoom({ id: listed.id, name: listed.name, role: 'member', studying: [] }))
+          return json(route, { id: listed.id, name: listed.name })
+        }
+        case 'move_session': {
+          const s = state.sessions.find((x) => x.status === 'active')
+          if (!s) return json(route, { message: 'no_active_session' }, 400)
+          s.room_id = body.p_room_id
+          return json(route, s)
+        }
+        case 'my_stats': {
+          const done = state.sessions.filter((x) => x.status === 'completed')
+          const total = done.reduce((a, x) => a + Number(x.focus_seconds ?? 0), 0)
+          const today = new Date().toISOString().slice(0, 10)
+          return json(route, {
+            tz: 'UTC',
+            total_seconds: total,
+            sessions: done.length,
+            pomodoros: done.filter((x) => x.kind === 'pomodoro').length,
+            longest_seconds: Math.max(0, ...done.map((x) => Number(x.focus_seconds ?? 0))),
+            first_day: done.length ? today : null,
+            days: total ? [{ d: today, s: total }] : [],
+            months: total ? [{ m: today.slice(0, 7), s: total }] : [],
+            hours: Array.from({ length: 24 }, (_, h) => (h === 9 ? total : 0)),
+            weekdays: [total, 0, 0, 0, 0, 0, 0],
+            rooms: total ? [{ name: null, personal: true, s: total }] : [],
+          })
+        }
         case 'visit_room':
           if (body.p_user_id !== miaLive.user_id) return json(route, { message: 'not_allowed' }, 400)
           return json(route, { display_name: 'Mia', avatar: otherAvatar, layout: [] })
@@ -387,7 +426,7 @@ export async function mockSupabase(page: Page, initial: Partial<MockState> = {})
     }
     if (path === '/rest/v1/blocks') return json(route, [])
     if (path === '/rest/v1/rooms')
-      return one(state.profile ? [{ id: 'room-personal', layout: state.personalLayout }] : [])
+      return one(state.profile ? [{ id: 'room-personal', layout: state.personalLayout, style: {} }] : [])
     if (path === '/rest/v1/inventory') return json(route, state.inventory)
     if (path === '/rest/v1/room_inventory') return json(route, state.roomInventory)
     if (path === '/rest/v1/sessions') {

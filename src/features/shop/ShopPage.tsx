@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { rovingKeys } from '../../components/roving'
 import { Loading, LoadFailed } from '../../components/LoadFailed'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { Bean } from '../../components/Bean'
+import { BeanPortrait } from '../../components/BeanPortrait'
 import { CoinIcon } from '../../components/icons'
 import { ErrorText } from '../../components/Screen'
 import { toggleAccessory } from '../../content/avatar'
@@ -16,7 +16,7 @@ import { useAuth } from '../../stores/auth'
 import { useRooms } from '../../stores/rooms'
 import { useUi } from '../../stores/ui'
 import { useWallet } from '../../stores/wallet'
-import { ItemThumb, ThumbRenderer } from './ItemThumb'
+import { ItemThumb } from './ItemThumb'
 
 const t = copy.shop
 type Tab = 'furniture' | 'decor' | 'wall' | 'accessory'
@@ -35,7 +35,7 @@ export function ShopPage() {
   const [bank, setBank] = useState<number | null>(null)
   const [roomOwned, setRoomOwned] = useState<Map<string, number>>(new Map())
   const [reload, setReload] = useState(0)
-  const [roomFailed, setRoomFailed] = useState(false)
+  const [roomFailed, setRoomFailed] = useState<string | null>(null)
   const [buying, setBuying] = useState<string | null>(null)
 
   useEffect(() => {
@@ -46,7 +46,7 @@ export function ShopPage() {
       supabase.from('room_inventory').select('item_id, qty').eq('room_id', roomId),
     ]).then(([info, inv]) => {
       if (cancelled) return
-      setRoomFailed(Boolean(info.error || inv.error))
+      setRoomFailed(rpcErrorCode(info.error ?? inv.error))
       if (info.error || inv.error) return
       setBank((info.data as { bank_coins?: number } | null)?.bank_coins ?? 0)
       setRoomOwned(
@@ -65,7 +65,10 @@ export function ShopPage() {
   const unknownFunds = roomId ? bank === null : balance === null
   if (unknownFunds)
     return (roomId ? roomFailed : walletError) ? (
-      <LoadFailed onRetry={() => (roomId ? setReload((k) => k + 1) : void load())} />
+      <LoadFailed
+        code={roomId ? roomFailed : walletError}
+        onRetry={() => (roomId ? setReload((k) => k + 1) : void load())}
+      />
     ) : (
       <Loading />
     )
@@ -122,7 +125,6 @@ export function ShopPage() {
 
   return (
     <div className="space-y-5">
-      <ThumbRenderer />
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-display text-3xl font-bold">{room ? t.roomTitle(room.name) : t.title}</h1>
@@ -167,7 +169,7 @@ export function ShopPage() {
               const preview = toggleAccessory({ ...profile.avatar, accessories: [] }, a.id as Accessory)
               return (
                 <li key={a.id} className="card flex flex-col items-center p-3 text-center">
-                  <Bean avatar={preview} size={80} title={a.name} />
+                  <BeanPortrait avatar={preview} size={80} title={a.name} />
                   <p className="mt-1 font-bold">
                     {copy.onboarding.bean.accessories[a.id as Accessory] ?? a.name}
                   </p>

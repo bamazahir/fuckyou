@@ -51,7 +51,7 @@ test('the first pomodoro asks once about notifications, and sign-out removes the
     })
 
   // Client-side navigation keeps the stubbed subscription alive.
-  await page.getByRole('link', { name: 'Profile' }).click()
+  await page.getByRole('link', { name: 'You' }).click()
   await expect(page.getByTestId('push-status')).toHaveText('On for this device.')
   await page.getByRole('button', { name: 'Sign out' }).click()
   await expect.poll(() => state.calls.some((c) => c.name === 'delete_push_subscription')).toBe(true)

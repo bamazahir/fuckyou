@@ -11,15 +11,15 @@ test('signed-out visitors land on sign-in', async ({ page }) => {
   await expect(page.getByText(/Check ana@example.com/)).toBeVisible()
 })
 
-test('signed-in users see the three tabs and can navigate', async ({ page }) => {
+test('signed-in users see the five tabs and can navigate', async ({ page }) => {
   await mockSupabase(page, { profile: readyProfile })
   await signIn(page)
   await page.goto('/')
   await expect(page.getByRole('heading', { name: 'Hi, Ana.' })).toBeVisible()
   const nav = page.getByRole('navigation', { name: 'Main' })
-  for (const tab of ['Home', 'My Room', 'Profile'])
+  for (const tab of ['Home', 'Rooms', 'My Room', 'Stats', 'You'])
     await expect(nav.getByRole('link', { name: tab })).toBeVisible()
-  await nav.getByRole('link', { name: 'Profile' }).click()
+  await nav.getByRole('link', { name: 'You' }).click()
   await expect(page.getByRole('heading', { name: 'Ana', exact: true })).toBeVisible()
 })
 

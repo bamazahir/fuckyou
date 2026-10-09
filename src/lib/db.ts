@@ -33,7 +33,11 @@ export interface Avatar {
   outfit?: { top?: TopStyle; bottom?: BottomStyle }
   /** At most one per slot (see ACCESSORIES). */
   accessories?: Accessory[]
+  /** The face your bean makes; missing = 'happy'. */
+  expression?: Expression
 }
+
+export type Expression = 'happy' | 'joyful' | 'calm' | 'focused' | 'sleepy' | 'surprised' | 'cheeky' | 'cat'
 
 export interface Profile {
   id: string

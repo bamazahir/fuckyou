@@ -26,16 +26,32 @@ export function RoomSettings({
   roomId,
   name,
   sync,
+  listed = null,
+  isOwner = false,
   onSyncChanged,
   onClose,
 }: {
   roomId: string
   name: string
   sync: SyncSettings | null
+  /** Listed in Discover (null while unknown); only the owner can change it. */
+  listed?: boolean | null
+  isOwner?: boolean
   onSyncChanged: () => void
   onClose: () => void
 }) {
   const [newName, setNewName] = useState(name)
+  const [listedNow, setListedNow] = useState<boolean | null>(null)
+
+  async function setListed(on: boolean) {
+    setError(null)
+    setListedNow(on)
+    const { error: err } = await supabase.rpc('set_room_listed', { p_room_id: roomId, p_listed: on })
+    if (err) {
+      setListedNow(null)
+      setError(rpcErrorCode(err))
+    } else onSyncChanged()
+  }
   const [error, setError] = useState<string | null>(null)
   const [reports, setReports] = useState<Report[] | null>(null)
   const [reportsFailed, setReportsFailed] = useState(false)
@@ -130,6 +146,20 @@ export function RoomSettings({
           </div>
         )}
       </fieldset>
+      {isOwner && listed !== null && (
+        <label className="card mt-5 flex items-start gap-3 p-3">
+          <input
+            type="checkbox"
+            className="mt-1 h-5 w-5 accent-[var(--accent)]"
+            checked={listedNow ?? listed}
+            onChange={(e) => void setListed(e.target.checked)}
+          />
+          <span>
+            <span className="block font-bold">{copy.rooms.listTitle}</span>
+            <span className="text-sm text-muted">{copy.rooms.listHint}</span>
+          </span>
+        </label>
+      )}
       <div className="mt-5">
         <button
           type="button"

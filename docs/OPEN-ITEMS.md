@@ -5,7 +5,7 @@ shared doc "Studyroom — open items" (https://claude.ai/code/artifact/37ce5a78-
 Agents: keep both in step, add new items when a milestone needs a device or a person, and never tick one yourself.
 
 ## Setup to do once (from the repo folder)
-- [ ] `pnpm dlx supabase db push` (enable pg_cron + pg_net first); migrations up to the latest in `supabase/migrations/` (currently `20261012100000_m7_audit_fixes`)
+- [ ] `pnpm dlx supabase db push` (enable pg_cron + pg_net first); migrations up to the latest in `supabase/migrations/` (currently `20261013000000_m8_hub`). **This is why Shop and Decorate don't open yet: the app now says "needs a database update" until it's done.**
 - [ ] Make yourself admin: `update public.profiles set is_admin = true where handle = '<you>';`
 - [ ] `node scripts/push/vapid.mjs` → VAPID keys; `openssl rand -hex 32` → PUSH_SECRET
 - [ ] `supabase secrets set VAPID_PUBLIC_KEY VAPID_PRIVATE_KEY VAPID_SUBJECT=mailto:… PUSH_SECRET APP_URL`
@@ -53,3 +53,8 @@ reaction/nudge counts (accepted, decision 0010) · 13–15 consent outside the s
 - [ ] M7 device check: iPhone launch screen shows the bean + "Studyroom" (not a white flash) when opening the installed app
 - [ ] M7 after deploy: `curl -I https://<app>/splash/splash-1179x2556.png` and `/og-image.png` return `image/png`; once the domain is final, make `og:image` an absolute URL and add `og:url` in `index.html`
 - [ ] M7: say if you'd like the app icon redrawn with the new chibi bean (it still uses the M0 drawing)
+- [ ] Hub update (decision 0014): after `db push`, check your account now owns 14 starter things and your rooms look fuller (plants, lamps, beanbags, wall things)
+- [ ] Hub update: decide whether Discover is OK for your school before anyone lists a room (same-age-group only, names and counts only, no chat); re-check before any wider rollout
+- [ ] Hub update device check: Stats, Rooms and You pages on a phone; the 5-tab bar fits; the 3D bean preview on You turns smoothly on a mid-range Android
+- [ ] Hub update device check: start a timer in My Room, open a shared room, tap "Move here"; a second device in that room sees you arrive
+

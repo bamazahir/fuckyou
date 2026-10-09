@@ -23,6 +23,8 @@ interface TimerState {
     statusLine: string,
   ) => Promise<void>
   end: () => Promise<void>
+  /** Carry the running session into another of your rooms. */
+  moveTo: (roomId: string) => Promise<void>
   checkin: () => Promise<void>
   /** Saves the note; returns the coins it paid, or null on error. */
   submitNote: (sessionId: string, note: string) => Promise<number | null>
@@ -51,6 +53,14 @@ export const useTimer = create<TimerState>((set, get) => ({
       p_planned_seconds: plannedSeconds,
       p_status_line: statusLine.trim() || null,
     })
+    set({ busy: false })
+    if (error) return set({ error: rpcErrorCode(error) })
+    set({ phase: { name: 'running', session: data as SessionRow } })
+  },
+
+  moveTo: async (roomId) => {
+    set({ busy: true, error: null })
+    const { data, error } = await supabase.rpc('move_session', { p_room_id: roomId })
     set({ busy: false })
     if (error) return set({ error: rpcErrorCode(error) })
     set({ phase: { name: 'running', session: data as SessionRow } })

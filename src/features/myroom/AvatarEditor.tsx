@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { AvatarSwatches } from '../../components/AvatarSwatches'
-import { Bean } from '../../components/Bean'
+import { BeanPreview } from '../../components/BeanPreview'
 import { Dialog } from '../../components/Dialog'
 import { ErrorText } from '../../components/Screen'
 import { copy } from '../../content/copy'
@@ -34,7 +34,7 @@ export function AvatarEditor({ onClose }: { onClose: () => void }) {
   return (
     <Dialog title={copy.myRoom.beanTitle} onClose={onClose} labelledBy="bean-title">
       <div className="mt-4 flex justify-center">
-        <Bean avatar={avatar} size={96} title={profile.display_name} />
+        <BeanPreview avatar={avatar} size={168} title={profile.display_name} />
       </div>
       <AvatarSwatches avatar={avatar} onChange={setAvatar} owned={ownedAccessories} />
       <ErrorText code={error} />

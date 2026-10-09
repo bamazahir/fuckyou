@@ -4,7 +4,7 @@ import { Loading, LoadFailed } from '../../components/LoadFailed'
 import { Link, useNavigate } from 'react-router-dom'
 import { Dialog } from '../../components/Dialog'
 import { CoinIcon } from '../../components/icons'
-import { RoomScene } from '../../components/RoomScene'
+import { NoWebGL } from '../../components/NoWebGL'
 import { ErrorText } from '../../components/Screen'
 import { useDaypart } from '../../components/useDaypart'
 import { useNow } from '../../components/useNow'
@@ -234,6 +234,7 @@ export function SharedRoom({ room }: { room: MyRoom }) {
                 className={SCENE_BOX}
                 size={SHARED_SIZE}
                 layout={info && info.layout.length > 0 ? info.layout : DEFAULT_SHARED}
+                roomStyle={info?.style}
                 avatars={sceneAvatars}
                 night={daypart === 'night'}
                 lampOn={studyingIds.length > 0 || daypart === 'night'}
@@ -241,11 +242,7 @@ export function SharedRoom({ room }: { room: MyRoom }) {
                 onSelect={openById}
                 fallback={
                   <div className="space-y-4 p-4">
-                    <RoomScene
-                      beans={liveRows.filter((r) => r.state === 'focus').map((r) => r.avatar)}
-                      night={daypart === 'night'}
-                      label={room.name}
-                    />
+                    <NoWebGL className="min-h-0 p-0" />
                     <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                       {liveRows.map((m) => (
                         <li key={m.user_id}>
@@ -304,7 +301,7 @@ export function SharedRoom({ room }: { room: MyRoom }) {
                   aria-selected={tab === k}
                   tabIndex={tab === k ? 0 : -1}
                   onKeyDown={rovingKeys}
-                  className={`chip ${tab === k ? 'chip-on' : ''}`}
+                  className={`chip px-1 text-sm ${tab === k ? 'chip-on' : ''}`}
                   onClick={() => setTab(k)}
                 >
                   {t.tabs[k]}
@@ -432,6 +429,8 @@ export function SharedRoom({ room }: { room: MyRoom }) {
           roomId={room.id}
           name={room.name}
           sync={sync}
+          listed={info?.listed ?? null}
+          isOwner={myRole === 'owner'}
           onSyncChanged={refetchInfo}
           onClose={() => setSheet(null)}
         />

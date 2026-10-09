@@ -1,3 +1,5 @@
+import { useRooms } from '../../stores/rooms'
+import { Link } from 'react-router-dom'
 import type { Station } from '../../core/radio'
 import { rovingKeys } from '../../components/roving'
 import { RadioPill } from '../radio/RadioPanel'
@@ -49,7 +51,32 @@ function ProgressRing({ progress }: { progress: number }) {
   )
 }
 
-function Running({ session, together }: { session: SessionRow; together: boolean }) {
+/** Where your running session is, when it's not in this room, with a way to bring it here. */
+function ElsewhereBanner({ session, roomId }: { session: SessionRow; roomId: string }) {
+  const { moveTo, busy, error } = useTimer()
+  const rooms = useRooms((s) => s.rooms)
+  const personalRoomId = useAuth((s) => s.personalRoomId)
+  const name =
+    session.room_id === personalRoomId
+      ? copy.myRoom.title
+      : (rooms?.find((r) => r.id === session.room_id)?.name ?? copy.rooms.anotherRoom)
+  return (
+    <div className="card mb-4 w-full bg-surface-2 p-4">
+      <p className="font-bold">{copy.rooms.studyingIn(name)}</p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button type="button" className="btn btn-primary" onClick={() => void moveTo(roomId)} disabled={busy}>
+          {copy.rooms.moveHere}
+        </button>
+        <Link to={`/room/${session.room_id}`} className="btn btn-secondary">
+          {copy.rooms.goBack}
+        </Link>
+      </div>
+      <ErrorText code={error} />
+    </div>
+  )
+}
+
+function Running({ session, together, roomId }: { session: SessionRow; together: boolean; roomId: string }) {
   const now = useNow(true)
   const { end, checkin, busy } = useTimer()
   const view = timerView(toActive(session), now)
@@ -62,6 +89,7 @@ function Running({ session, together }: { session: SessionRow; together: boolean
   const big = view.remaining !== null ? formatClock(view.remaining) : formatClock(view.elapsed)
   return (
     <div className="flex flex-col items-center">
+      {session.room_id !== roomId && <ElsewhereBanner session={session} roomId={roomId} />}
       <div className="relative grid h-60 w-60 place-items-center">
         {view.progress !== null && <ProgressRing progress={view.progress} />}
         <div className="text-center">
@@ -260,7 +288,9 @@ export function TimerDock({
           <RadioPill roomId={roomId} station={radio} />
         </div>
       )}
-      {phase.name === 'running' && <Running session={phase.session} together={sync !== null} />}
+      {phase.name === 'running' && (
+        <Running session={phase.session} together={sync !== null} roomId={roomId} />
+      )}
       {sync && phase.name !== 'running' && <SyncDock roomId={roomId} sync={sync} together={together} />}
       {!sync && phase.name === 'break' && (
         <Break endsAtMs={phase.endsAtMs} minutes={phase.minutes} onStartNext={begin} />

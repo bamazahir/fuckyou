@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { canPlace, nextRot, placement, pointToCell, remaining } from './edit'
+import { applyTemplate, canPlace, nextRot, placement, pointToCell, remaining } from './edit'
 import type { ItemDef } from './grid'
 
 const desk: ItemDef = { id: 'desk', footprint: [2, 1], layer: 'floor' }
@@ -49,5 +49,25 @@ describe('nextRot', () => {
   it('turns floor items and leaves wall items alone', () => {
     expect(nextRot(desk, 3)).toBe(0)
     expect(nextRot(poster, 1)).toBe(1)
+  })
+})
+
+describe('applyTemplate', () => {
+  it('keeps only what you own, in order', () => {
+    const tpl = [
+      { item_id: 'desk', x: 0, z: 0, rot: 0 as const },
+      { item_id: 'desk', x: 1, z: 0, rot: 0 as const },
+      { item_id: 'lamp', x: 2, z: 0, rot: 0 as const },
+    ]
+    expect(applyTemplate(tpl, new Map([['desk', 1]]))).toEqual([tpl[0]])
+    expect(
+      applyTemplate(
+        tpl,
+        new Map([
+          ['desk', 2],
+          ['lamp', 1],
+        ]),
+      ),
+    ).toEqual(tpl)
   })
 })

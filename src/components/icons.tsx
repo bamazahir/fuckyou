@@ -48,6 +48,26 @@ export function BeanIcon(props: SVGProps<SVGSVGElement>) {
 }
 
 /** A coin: filled with the accent role so it reads as money everywhere. */
+export function DoorsIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <path d="M3 21V5l6-2v18" />
+      <path d="M13 21V7h8v14" />
+      <path d="M2 21h20" />
+      <path d="M7 12v1M16 14v1" />
+    </Icon>
+  )
+}
+
+export function ChartIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <Icon {...props}>
+      <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
+    </Icon>
+  )
+}
+
+/** A coin: filled with the accent role so it reads as money everywhere. */
 export function CoinIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <Icon width={20} height={20} {...props}>

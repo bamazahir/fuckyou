@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import type { RoomStyle } from '../../content/roomStyles'
 import type { LayoutItem } from '../../core/grid'
 import type { SyncSettings } from '../../core/sync'
 import { supabase } from '../../lib/supabase'
@@ -12,6 +13,10 @@ export interface RoomInfo {
   bank: number
   /** The room's radio station id (SPEC §11). */
   stationId: string | null
+  /** Wall and floor finishes. */
+  style: RoomStyle
+  /** Listed in Discover. */
+  listed: boolean
 }
 
 interface Row {
@@ -23,6 +28,8 @@ interface Row {
   layout?: LayoutItem[]
   bank_coins?: number
   station_id?: string
+  style?: RoomStyle
+  listed?: boolean
 }
 
 /** room_info, refetched when the room's settings change (the 'sync', 'layout' and 'station' broadcasts bump `key`). */
@@ -45,6 +52,8 @@ export function useRoomInfo(roomId: string, key: number) {
         layout: Array.isArray(r.layout) ? r.layout : [],
         bank: r.bank_coins ?? 0,
         stationId: r.station_id ?? null,
+        style: r.style ?? {},
+        listed: r.listed ?? false,
       })
     })
     return () => {
