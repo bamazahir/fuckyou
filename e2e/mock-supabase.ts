@@ -319,6 +319,14 @@ export async function mockSupabase(page: Page, initial: Partial<MockState> = {})
           state.rooms.push(sharedRoom({ id: listed.id, name: listed.name, role: 'member', studying: [] }))
           return json(route, { id: listed.id, name: listed.name })
         }
+        case 'choose_seat': {
+          const row = state.live.find((r) => r.user_id === USER_ID)
+          if (!row) return json(route, { message: 'no_active_session' }, 400)
+          if (state.live.some((r) => r.user_id !== USER_ID && r.seat === body.p_seat))
+            return json(route, { message: 'seat_taken' }, 400)
+          row.seat = body.p_seat
+          return json(route, null)
+        }
         case 'move_session': {
           const s = state.sessions.find((x) => x.status === 'active')
           if (!s) return json(route, { message: 'no_active_session' }, 400)

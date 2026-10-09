@@ -17,6 +17,9 @@ export const WALLS: readonly Finish[] = [
   { id: 'mint', name: 'Mint', color: '#B5DCCB' },
   { id: 'navy', name: 'Navy', color: '#3A4670' },
   { id: 'terracotta', name: 'Terracotta', color: '#C9785B' },
+  { id: 'butter', name: 'Butter', color: '#EED892' },
+  { id: 'forest', name: 'Forest', color: '#53705A' },
+  { id: 'charcoal', name: 'Charcoal', color: '#4B4C57' },
 ]
 
 export const FLOORS: readonly Finish[] = [
@@ -27,12 +30,35 @@ export const FLOORS: readonly Finish[] = [
   { id: 'cherry', name: 'Cherry', color: '#9E5A44' },
   { id: 'slate', name: 'Slate', color: '#7C8290' },
   { id: 'chalk', name: 'Chalk', color: '#E6DED2' },
+  { id: 'ash', name: 'Ash', color: '#A99D8C' },
+  { id: 'ebony', name: 'Ebony', color: '#4A3A31' },
 ]
 
 export interface RoomStyle {
   wall?: string
   floor?: string
 }
+
+/** One-tap looks: a wall and a floor that go together. */
+export interface Look {
+  id: string
+  name: string
+  wall: string
+  floor: string
+}
+
+export const LOOKS: readonly Look[] = [
+  { id: 'cabin', name: 'Cozy cabin', wall: 'terracotta', floor: 'walnut' },
+  { id: 'scandi', name: 'Scandi', wall: 'cream', floor: 'birch' },
+  { id: 'botanical', name: 'Botanical', wall: 'sage', floor: 'oak' },
+  { id: 'pastel', name: 'Pastel', wall: 'blush', floor: 'chalk' },
+  { id: 'seaside', name: 'Seaside', wall: 'sky', floor: 'ash' },
+  { id: 'dreamy', name: 'Dreamy', wall: 'lavender', floor: 'chalk' },
+  { id: 'sunny', name: 'Sunny', wall: 'butter', floor: 'cherry' },
+  { id: 'forest', name: 'Forest', wall: 'forest', floor: 'walnut' },
+  { id: 'night_owl', name: 'Night owl', wall: 'navy', floor: 'slate' },
+  { id: 'studio', name: 'Studio', wall: 'charcoal', floor: 'ebony' },
+]
 
 const colorOf = (list: readonly Finish[], id: string | undefined) =>
   list.find((f) => f.id === id)?.color ?? null

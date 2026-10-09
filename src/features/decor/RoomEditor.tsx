@@ -3,7 +3,7 @@ import { ErrorText } from '../../components/Screen'
 import { copy } from '../../content/copy'
 import { CATALOG } from '../../content/layouts'
 import { applyTemplate, canPlace, nextRot, placement, remaining } from '../../core/edit'
-import { FLOORS, WALLS, type RoomStyle } from '../../content/roomStyles'
+import { FLOORS, LOOKS, WALLS, type RoomStyle } from '../../content/roomStyles'
 import type { LayoutTemplate } from '../../content/layouts'
 import type { LayoutItem, Rot } from '../../core/grid'
 import { hasWebGL } from '../../lib/webgl'
@@ -291,6 +291,35 @@ export function RoomEditor({
         <h2 id="finish-title" className="font-display text-lg font-bold">
           {t.finishes}
         </h2>
+        <fieldset className="mt-3">
+          <legend className="text-sm font-bold">{t.looks}</legend>
+          <p className="text-sm text-muted">{t.looksHint}</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {LOOKS.map((look) => {
+              const on = style.wall === look.wall && style.floor === look.floor
+              const swatch = (list: typeof WALLS, id: string) =>
+                list.find((f) => f.id === id)?.color ?? undefined
+              return (
+                <button
+                  key={look.id}
+                  type="button"
+                  aria-pressed={on}
+                  className={`chip gap-2 px-3 text-sm ${on ? 'chip-on' : ''}`}
+                  onClick={() => setStyle({ wall: look.wall, floor: look.floor })}
+                >
+                  <span aria-hidden="true" className="flex overflow-hidden rounded-full border-2 border-line">
+                    <span className="inline-block h-4 w-2" style={{ background: swatch(WALLS, look.wall) }} />
+                    <span
+                      className="inline-block h-4 w-2"
+                      style={{ background: swatch(FLOORS, look.floor) }}
+                    />
+                  </span>
+                  {look.name}
+                </button>
+              )
+            })}
+          </div>
+        </fieldset>
         {(
           [
             ['wall', t.walls, WALLS],

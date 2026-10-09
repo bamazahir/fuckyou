@@ -63,10 +63,20 @@ export function assignSeats(
   prev: ReadonlyMap<string, number>,
   presentIds: readonly string[],
   seatCount: number,
+  /** Seats people picked themselves; they win over where anyone was sitting before. */
+  chosen: ReadonlyMap<string, number> = new Map(),
 ): Map<string, number> {
   const next = new Map<string, number>()
   const used = new Set<number>()
   for (const id of presentIds) {
+    const pick = chosen.get(id)
+    if (pick !== undefined && pick >= 0 && pick < seatCount && !used.has(pick)) {
+      next.set(id, pick)
+      used.add(pick)
+    }
+  }
+  for (const id of presentIds) {
+    if (next.has(id)) continue
     const was = prev.get(id)
     if (was !== undefined && was < seatCount && !used.has(was)) {
       next.set(id, was)
@@ -82,4 +92,45 @@ export function assignSeats(
     used.add(free)
   }
   return next
+}
+
+/**
+ * The chair nearest a tapped floor point (room coordinates, centred on the origin), if one is within
+ * reach and nobody else is in it. Cushions aren't offered: they only appear when the chairs run out.
+ */
+export function nearestChair(
+  seats: readonly Seat[],
+  point: readonly [number, number],
+  size: number,
+  taken: ReadonlySet<number>,
+  reach = 1.1,
+): number | null {
+  let best: number | null = null
+  let bestDist = reach
+  seats.forEach((seat, i) => {
+    if (seat.kind !== 'chair' || taken.has(i)) return
+    const dx = seat.x - size / 2 + 0.5 - point[0]
+    const dz = seat.z - size / 2 + 0.5 - point[1]
+    const dist = Math.hypot(dx, dz)
+    if (dist < bestDist) {
+      best = i
+      bestDist = dist
+    }
+  })
+  return best
+}
+
+/** The next free chair after `current` (wrapping round), for the "next chair" button. */
+export function nextFreeChair(
+  seats: readonly Seat[],
+  current: number | undefined,
+  taken: ReadonlySet<number>,
+): number | null {
+  const n = seats.length
+  const from = current ?? -1
+  for (let step = 1; step <= n; step++) {
+    const i = (((from + step) % n) + n) % n
+    if (i !== current && seats[i]?.kind === 'chair' && !taken.has(i)) return i
+  }
+  return null
 }

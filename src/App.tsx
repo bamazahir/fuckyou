@@ -63,6 +63,12 @@ const router = createBrowserRouter([
     errorElement: <RouteError />,
     element: (
       <>
+        {/* An opaque band behind the iPhone status bar, so content scrolling under it isn't seen
+            through Safari's frosted top edge. */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none fixed inset-x-0 top-0 z-30 h-[env(safe-area-inset-top)] bg-bg"
+        />
         <OfflineBanner />
         <Suspense fallback={<LoadingPage />}>
           <Outlet />

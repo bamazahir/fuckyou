@@ -1,14 +1,35 @@
 // The isometric room (SPEC §10): orthographic true-iso camera fitted to the room, flat-shaded
 // procedural furniture, seated beans and DOM labels (name + timer + state) projected on top.
-import { Canvas, useThree, type ThreeEvent } from '@react-three/fiber'
-import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { MeshBasicMaterial, type DirectionalLight, type OrthographicCamera } from 'three'
+import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
+import {
+  memo,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+  type ReactNode,
+} from 'react'
+import { MeshBasicMaterial, type DirectionalLight, type Group, type OrthographicCamera } from 'three'
+import { copy } from '../content/copy'
 import { CATALOG } from '../content/layouts'
 import { rotatedSize, type LayoutItem } from '../core/grid'
 import { pointToCell } from '../core/edit'
-import { cellCenter, isoFrame, toScreen, type IsoFrame, type Vec3 } from '../core/iso'
+import {
+  cellCenter,
+  isoFrame,
+  MAX_VIEW_ZOOM,
+  rotateY,
+  toScreen,
+  viewFrame,
+  visibleWalls,
+  type IsoFrame,
+  type Vec3,
+  type WallSide,
+} from '../core/iso'
 import { fullLabels, labelWidth } from '../core/labels'
-import { assignSeats, MAX_LABELS, seatList, type Seat } from '../core/seats'
+import { assignSeats, MAX_LABELS, nearestChair, nextFreeChair, seatList, type Seat } from '../core/seats'
 import type { Avatar } from '../lib/db'
 import { useTheme } from '../stores/theme'
 import { Bean3D, BEAN_HEIGHT, type BeanState } from './Bean3D'
@@ -28,6 +49,8 @@ export interface SceneAvatar {
   bubble?: string
   isMe?: boolean
   ariaLabel: string
+  /** The seat (an index into seatList) this person picked, if any. */
+  seat?: number | null
 }
 
 export interface IsoRoomProps {
@@ -45,6 +68,8 @@ export interface IsoRoomProps {
   edit?: SceneEdit
   /** The room's wall and floor finishes (content/roomStyles). */
   roomStyle?: RoomStyle | null
+  /** Tapping a free chair picks it (a seat index); omit where you can't sit. */
+  onPickSeat?: (seat: number) => void
 }
 
 export interface SceneEdit {
@@ -89,11 +114,11 @@ function useReducedMotion(): boolean {
 }
 
 /** Keeps seats stable as people come and go (derived state, updated during render). */
-function useSeating(ids: readonly string[], seatCount: number) {
-  const key = ids.join('|')
-  const [state, setState] = useState(() => ({ key, map: assignSeats(new Map(), ids, seatCount) }))
+function useSeating(ids: readonly string[], seatCount: number, chosen: ReadonlyMap<string, number>) {
+  const key = `${ids.join('|')}/${[...chosen].join('|')}/${seatCount}`
+  const [state, setState] = useState(() => ({ key, map: assignSeats(new Map(), ids, seatCount, chosen) }))
   if (state.key !== key) {
-    const next = { key, map: assignSeats(state.map, ids, seatCount) }
+    const next = { key, map: assignSeats(state.map, ids, seatCount, chosen) }
     setState(next)
     return next.map
   }
@@ -104,16 +129,28 @@ function wallHeight(size: number) {
   return size > 8 ? 2.7 : 2.5
 }
 
+/** Which wall a wall item hangs on (rot 0 = the north wall, along x; rot 1 = the west wall). */
+function wallOf(item: LayoutItem): WallSide {
+  return item.rot === 0 ? 'n' : 'w'
+}
+
+/** Quarter turns, 0–3, for any whole number of turns. */
+function quarters(turn: number) {
+  return ((turn % 4) + 4) % 4
+}
+
 /**
- * What the camera fits: the furniture, the people and the stretch of back wall behind them, so a
+ * What the camera fits: the furniture, the people and the stretch of the far walls behind them, so a
  * small group fills the view and a crowd zooms out. The empty front of the room may be cropped.
+ * Points are in room coordinates; the caller turns them with the room.
  */
 function framePoints(
   size: number,
   layout: readonly LayoutItem[],
   people: readonly [number, number, number][],
   /** Decorating: fit the whole floor, so every cell can be reached. */
-  whole = false,
+  whole: boolean,
+  sides: readonly WallSide[],
 ): Vec3[] {
   const h = size / 2
   const xs: number[] = whole ? [-h, h] : []
@@ -122,6 +159,7 @@ function framePoints(
     const def = CATALOG.get(item.item_id)
     if (!def) continue
     if (def.layer === 'wall') {
+      if (!sides.includes(wallOf(item))) continue
       const along = item.rot === 0 ? item.x : item.z
       const span = [along - h, along + def.footprint[0] - h]
       if (item.rot === 0) xs.push(...span)
@@ -136,23 +174,29 @@ function framePoints(
     xs.push(x - 0.6, x + 0.6)
     zs.push(z - 0.6, z + 0.6)
   }
+  if (xs.length === 0) xs.push(-h, h)
+  if (zs.length === 0) zs.push(-h, h)
   const pad = 0.4
   const x0 = Math.max(-h, Math.min(...xs) - pad)
   const x1 = Math.min(h, Math.max(...xs) + pad)
   const z0 = Math.max(-h, Math.min(...zs) - pad)
   const z1 = Math.min(h, Math.max(...zs) + pad)
   const top = wallHeight(size)
-  const back = -h - WALL_T
-  const floorY = (x: number, z: number) => (x >= h - 0.01 || z >= h - 0.01 ? -SLAB : 0)
+  const out = h + WALL_T
+  // the slab's edge shows below the floor along the cut-away sides
+  const floorY = (x: number, z: number) => (Math.abs(x) >= h - 0.01 || Math.abs(z) >= h - 0.01 ? -SLAB : 0)
   const points: Vec3[] = [
-    [x1, floorY(x1, z1), z1],
-    [x0, floorY(x0, z1), z1],
+    [x0, floorY(x0, z0), z0],
     [x1, floorY(x1, z0), z0],
-    [x0, top, back],
-    [x1, top, back],
-    [back, top, z0],
-    [back, top, z1],
+    [x0, floorY(x0, z1), z1],
+    [x1, floorY(x1, z1), z1],
   ]
+  for (const side of sides) {
+    if (side === 'n') points.push([x0, top, -out], [x1, top, -out])
+    if (side === 's') points.push([x0, top, out], [x1, top, out])
+    if (side === 'w') points.push([-out, top, z0], [-out, top, z1])
+    if (side === 'e') points.push([out, top, z0], [out, top, z1])
+  }
   for (const [x, y, z] of people) points.push([x, y + BEAN_HEIGHT + 0.7, z])
   return points
 }
@@ -163,19 +207,71 @@ function seatPosition(seat: Seat, size: number): [number, number, number] {
   return [x + fx * seat.nudge, seat.height, z + fz * seat.nudge]
 }
 
-function CameraRig({ frame }: { frame: IsoFrame }) {
+/**
+ * The room, turned to `angle`, with the camera pointed at `frame`. While `animate` is on (the viewer
+ * turned or zoomed) both ease there and `onSettled` is called on arrival; otherwise they jump.
+ */
+function TurningWorld({
+  frame,
+  angle,
+  animate,
+  onSettled,
+  onClick,
+  children,
+}: {
+  frame: IsoFrame
+  angle: number
+  animate: boolean
+  onSettled: () => void
+  onClick?: (e: ThreeEvent<MouseEvent>) => void
+  children: ReactNode
+}) {
   const get = useThree((s) => s.get)
   const invalidate = useThree((s) => s.invalidate)
-  useLayoutEffect(() => {
+  const world = useRef<Group>(null)
+  const now = useRef<{ zoom: number; target: Vec3; angle: number } | null>(null)
+  useLayoutEffect(() => invalidate(), [frame, angle, animate, invalidate])
+  useFrame((_, dt) => {
     const camera = get().camera as OrthographicCamera
-    const [x, y, z] = frame.target
-    camera.zoom = frame.zoom
+    const goal = { zoom: frame.zoom, target: frame.target, angle }
+    let next = goal
+    let done = true
+    const cur = now.current
+    if (cur && animate) {
+      const k = 1 - Math.exp(-Math.min(dt, 0.1) * 10)
+      const mix = (a: number, b: number) => a + (b - a) * k
+      next = {
+        zoom: mix(cur.zoom, goal.zoom),
+        target: [
+          mix(cur.target[0], goal.target[0]),
+          mix(cur.target[1], goal.target[1]),
+          mix(cur.target[2], goal.target[2]),
+        ],
+        angle: mix(cur.angle, goal.angle),
+      }
+      const [gx, gy, gz] = goal.target
+      const off = Math.hypot(next.target[0] - gx, next.target[1] - gy, next.target[2] - gz)
+      done =
+        Math.abs(next.angle - goal.angle) < 0.003 &&
+        Math.abs(next.zoom - goal.zoom) < goal.zoom * 0.003 &&
+        off < 0.005
+      if (done) next = goal
+    }
+    now.current = next
+    const [x, y, z] = next.target
+    camera.zoom = next.zoom
     camera.position.set(x + 10, y + 10, z + 10)
     camera.lookAt(x, y, z)
     camera.updateProjectionMatrix()
-    invalidate()
-  }, [get, frame, invalidate])
-  return null
+    if (world.current) world.current.rotation.y = next.angle
+    if (!done) invalidate()
+    else if (animate) onSettled()
+  })
+  return (
+    <group ref={world} onClick={onClick}>
+      {children}
+    </group>
+  )
 }
 
 /** Renders at most ~30 fps while something is animating and the page is visible (frameloop="demand"). */
@@ -225,12 +321,43 @@ function KeyLight({ size, shadows, night }: { size: number; shadows: boolean; ni
   )
 }
 
-/** Floor slab with planks, and the two back walls with a wainscot band and skirting boards. */
-const Shell = memo(function Shell({ size }: { size: number }) {
+/** One wall, with a wainscot band and skirting boards, on the given side of the room. */
+const WALL_TURN: Record<WallSide, number> = { n: 0, w: 1, s: 2, e: -1 }
+
+function Wall({ side, size, other }: { side: WallSide; size: number; other: WallSide | undefined }) {
   const { c } = useScene()
   const h = size / 2
   const top = wallHeight(size)
   const low = 0.95
+  // Built as the north wall, then turned to its side. Given the `other` far wall, it runs on past
+  // the corner they share, to close it.
+  const [lx, , lz] = rotateY([-h, 0, -h], WALL_TURN[side])
+  const leftIsCorner =
+    other === 'w' ? lx < 0 : other === 'e' ? lx > 0 : other === 'n' ? lz < 0 : other === 's' ? lz > 0 : false
+  return (
+    <group rotation={[0, WALL_TURN[side] * QUARTER, 0]}>
+      <Box
+        size={[size + (other ? WALL_T : 0), top, WALL_T]}
+        position={[other ? (leftIsCorner ? -WALL_T / 2 : WALL_T / 2) : 0, top / 2 - SLAB, -h - WALL_T / 2]}
+        color={c.wall}
+      />
+      <Box
+        size={[size, low, 0.02]}
+        position={[0, low / 2, -h + 0.01]}
+        color={c.wallLow}
+        outline={false}
+        shadow={false}
+      />
+      <Box size={[size, 0.1, 0.05]} position={[0, low, -h + 0.025]} color={c.skirting} outline={false} />
+      <Box size={[size, 0.14, 0.05]} position={[0, 0.07, -h + 0.025]} color={c.skirting} outline={false} />
+    </group>
+  )
+}
+
+/** Floor slab with planks, and the walls on the far side (the near ones are cut away). */
+const Shell = memo(function Shell({ size, sides }: { size: number; sides: readonly WallSide[] }) {
+  const { c } = useScene()
+  const h = size / 2
   return (
     <group>
       <Box size={[size, SLAB - 0.02, size]} position={[0, -SLAB / 2 - 0.01, 0]} color={c.slab} />
@@ -244,30 +371,9 @@ const Shell = memo(function Shell({ size }: { size: number }) {
           shadow={false}
         />
       ))}
-      <Box
-        size={[size + WALL_T, top, WALL_T]}
-        position={[-WALL_T / 2, top / 2 - SLAB, -h - WALL_T / 2]}
-        color={c.wall}
-      />
-      <Box size={[WALL_T, top, size]} position={[-h - WALL_T / 2, top / 2 - SLAB, 0]} color={c.wall} />
-      <Box
-        size={[size, low, 0.02]}
-        position={[0, low / 2, -h + 0.01]}
-        color={c.wallLow}
-        outline={false}
-        shadow={false}
-      />
-      <Box
-        size={[0.02, low, size]}
-        position={[-h + 0.01, low / 2, 0]}
-        color={c.wallLow}
-        outline={false}
-        shadow={false}
-      />
-      <Box size={[size, 0.1, 0.05]} position={[0, low, -h + 0.025]} color={c.skirting} outline={false} />
-      <Box size={[0.05, 0.1, size]} position={[-h + 0.025, low, 0]} color={c.skirting} outline={false} />
-      <Box size={[size, 0.14, 0.05]} position={[0, 0.07, -h + 0.025]} color={c.skirting} outline={false} />
-      <Box size={[0.05, 0.14, size]} position={[-h + 0.025, 0.07, 0]} color={c.skirting} outline={false} />
+      {sides.map((side, i) => (
+        <Wall key={side} side={side} size={size} other={i === 0 ? sides[1] : undefined} />
+      ))}
     </group>
   )
 })
@@ -341,17 +447,22 @@ function Footprint({ item, size, color }: { item: LayoutItem; size: number; colo
 const Items = memo(function Items({
   layout,
   size,
+  sides,
   onTapItem,
 }: {
   layout: readonly LayoutItem[]
   size: number
+  /** Wall items on a cut-away wall are hidden. */
+  sides: readonly WallSide[]
   onTapItem?: (index: number) => void
 }) {
   return (
     <>
-      {layout.map((item, i) => (
-        <ItemAt key={i} item={item} size={size} onTap={onTapItem ? () => onTapItem(i) : undefined} />
-      ))}
+      {layout.map((item, i) =>
+        CATALOG.get(item.item_id)?.layer === 'wall' && !sides.includes(wallOf(item)) ? null : (
+          <ItemAt key={i} item={item} size={size} onTap={onTapItem ? () => onTapItem(i) : undefined} />
+        ),
+      )}
     </>
   )
 })
@@ -432,6 +543,8 @@ function lampPositions(layout: readonly LayoutItem[], size: number): [number, nu
   return (lamps.length > 0 ? lamps : desks).slice(0, 4)
 }
 
+const ZOOM_STEP = 1.4
+
 export default function IsoRoom({
   size,
   layout,
@@ -443,6 +556,7 @@ export default function IsoRoom({
   walkIn = true,
   edit,
   roomStyle,
+  onPickSeat,
 }: IsoRoomProps) {
   const [ref, [width, height]] = useElementSize<HTMLDivElement>()
   const theme = useTheme((s) => s.theme)
@@ -454,6 +568,23 @@ export default function IsoRoom({
   // canvas (at most twice, so a broken GPU can't loop).
   const [generation, setGeneration] = useState(0)
   const [firstIds] = useState(() => new Set(avatars.map((a) => a.id)))
+  // The viewer's view: whole quarter turns, a zoom on the fitted room and a pan while zoomed in.
+  // Decorating always uses the plain view (its tap surfaces sit on the north and west walls).
+  const [turn, setTurn] = useState(0)
+  const [zoom, setZoom] = useState(1)
+  const [pan, setPan] = useState<[number, number]>([0, 0])
+  const [moving, setMoving] = useState(false)
+  const gesture = useRef({
+    pointers: new Map<number, [number, number]>(),
+    start: [0, 0] as [number, number],
+    pan: [0, 0] as [number, number],
+    pinch: 0,
+    zoom: 1,
+    moved: false,
+  })
+  const editing = edit !== undefined
+  const q = editing ? 0 : quarters(turn)
+  const sides = useMemo(() => visibleWalls(q), [q])
   const finish = styleColors(roomStyle)
   const colors = useMemo(
     () => withRoomStyle(readSceneColors(), finish.wall, finish.floor),
@@ -461,9 +592,13 @@ export default function IsoRoom({
   )
   const shadows = useMemo(() => (navigator.hardwareConcurrency ?? 8) > 4, [])
   const seats = useMemo(() => seatList(layout, size, CATALOG), [layout, size])
+  const chosen = new Map(
+    avatars.flatMap((a) => (a.seat !== undefined && a.seat !== null ? [[a.id, a.seat] as const] : [])),
+  )
   const seating = useSeating(
     avatars.map((a) => a.id),
     seats.length,
+    chosen,
   )
   const placed = avatars.flatMap((a) => {
     const index = seating.get(a.id)
@@ -471,38 +606,141 @@ export default function IsoRoom({
     return seat ? [{ a, seat, pos: seatPosition(seat, size) }] : []
   })
   const peopleKey = placed.map((p) => p.pos.join()).join('|')
-  const editing = edit !== undefined
-  const frame = useMemo(
+  const base = useMemo(
     () =>
       width > 0 && height > 0
         ? isoFrame(
-            framePoints(size, layout, edit ? [] : placed.map((p) => p.pos), Boolean(edit)),
+            framePoints(size, layout, edit ? [] : placed.map((p) => p.pos), Boolean(edit), sides).map((p) =>
+              rotateY(p, q),
+            ),
             width,
             height,
           )
         : null,
-    [width, height, size, layout, peopleKey, editing], // eslint-disable-line react-hooks/exhaustive-deps
+    [width, height, size, layout, peopleKey, editing, sides, q], // eslint-disable-line react-hooks/exhaustive-deps
   )
+  const view = base ? viewFrame(base, editing ? 1 : zoom, editing ? [0, 0] : pan) : null
+  const frame = view?.frame ?? null
   const lamps = useMemo(() => lampPositions(layout, size), [layout, size])
-  const zoom = frame?.zoom ?? 0
+  const outlineZoom = base?.zoom ?? 0
   const env = useMemo<SceneEnv | null>(
-    () => (zoom > 0 ? { c: colors, outline: 1.7 / zoom, lampOn, night, shadows, reducedMotion } : null),
-    [colors, zoom, lampOn, night, shadows, reducedMotion],
+    () =>
+      outlineZoom > 0
+        ? { c: colors, outline: 1.7 / outlineZoom, lampOn, night, shadows, reducedMotion }
+        : null,
+    [colors, outlineZoom, lampOn, night, shadows, reducedMotion],
   )
   const door: [number, number, number] = [size / 2 - 0.4, 0, size / 2 - 0.4]
+  const zoomed = zoom > 1.01
+  const plainView = q === 0 && !zoomed
 
+  /** A tap, unless the pointer was dragged (r3f still fires clicks after a drag). */
+  const tapped = () => !gesture.current.moved
   const select = (id: string) => {
+    if (!tapped()) return
     setSelected(id)
     onSelect?.(id)
   }
+  const animateTo = (change: () => void) => {
+    change()
+    if (!reducedMotion) setMoving(true)
+  }
+  const turnBy = (by: number) => animateTo(() => setTurn((t) => t + by))
+  const zoomTo = (next: number) =>
+    animateTo(() => {
+      const z = Math.max(1, Math.min(MAX_VIEW_ZOOM, next))
+      setZoom(z)
+      if (z === 1) setPan([0, 0])
+    })
+  const resetView = () =>
+    animateTo(() => {
+      // back to the nearest plain turn, the short way round
+      setTurn((t) => t - (quarters(t) > 2 ? quarters(t) - 4 : quarters(t)))
+      setZoom(1)
+      setPan([0, 0])
+    })
+
+  const me = placed.find((p) => p.a.isMe)
+  const mySeat = me ? seating.get(me.a.id) : undefined
+  const taken = new Set(placed.filter((p) => !p.a.isMe).map((p) => seating.get(p.a.id) ?? -1))
+  const nextChair = onPickSeat ? nextFreeChair(seats, mySeat, taken) : null
+  const pickSeat = onPickSeat
+    ? (e: ThreeEvent<MouseEvent>) => {
+        if (!tapped()) return
+        // the handler sits on the turned room, so this is the tap in room coordinates
+        const local = e.eventObject.worldToLocal(e.point.clone())
+        const seat = nearestChair(seats, [local.x, local.z], size, taken)
+        if (seat === null || seat === mySeat) return
+        e.stopPropagation()
+        onPickSeat(seat)
+      }
+    : undefined
+
+  const onPointerDown = (e: ReactPointerEvent) => {
+    const g = gesture.current
+    g.pointers.set(e.pointerId, [e.clientX, e.clientY])
+    if (g.pointers.size === 1) {
+      g.start = [e.clientX, e.clientY]
+      g.pan = view?.pan ?? [0, 0]
+      g.moved = false
+    }
+    if (g.pointers.size === 2) {
+      const [a, b] = [...g.pointers.values()] as [[number, number], [number, number]]
+      g.pinch = Math.hypot(a[0] - b[0], a[1] - b[1])
+      g.zoom = zoom
+      g.moved = true
+    }
+  }
+  const onPointerMove = (e: ReactPointerEvent) => {
+    const g = gesture.current
+    if (!g.pointers.has(e.pointerId) || !base) return
+    g.pointers.set(e.pointerId, [e.clientX, e.clientY])
+    if (g.pointers.size >= 2 && g.pinch > 0) {
+      const [a, b] = [...g.pointers.values()] as [[number, number], [number, number]]
+      const next = Math.max(
+        1,
+        Math.min(MAX_VIEW_ZOOM, (g.zoom * Math.hypot(a[0] - b[0], a[1] - b[1])) / g.pinch),
+      )
+      setZoom(next)
+      if (next === 1) setPan([0, 0])
+      return
+    }
+    const dx = e.clientX - g.start[0]
+    const dy = e.clientY - g.start[1]
+    if (Math.hypot(dx, dy) > 8) g.moved = true
+    if (g.moved && zoomed) {
+      const px = base.zoom * zoom
+      setPan([g.pan[0] - dx / px, g.pan[1] + dy / px])
+    }
+  }
+  const onPointerEnd = (e: ReactPointerEvent) => {
+    const g = gesture.current
+    if (!g.pointers.has(e.pointerId)) return
+    g.pointers.delete(e.pointerId)
+    if (g.pointers.size > 0) return
+    g.pinch = 0
+    const dx = e.clientX - g.start[0]
+    const dy = e.clientY - g.start[1]
+    // A sideways swipe turns the room (when not zoomed in, where a drag pans instead).
+    if (
+      e.type === 'pointerup' &&
+      g.moved &&
+      !zoomed &&
+      Math.abs(dx) > 40 &&
+      Math.abs(dx) > Math.abs(dy) * 1.2
+    ) {
+      turnBy(dx > 0 ? 1 : -1)
+    }
+  }
+
   const labels = (() => {
     if (!frame) return []
     const items = placed.map(({ a, pos }) => {
-      const [x, y] = toScreen(frame, [pos[0], pos[1] + BEAN_HEIGHT + 0.12, pos[2]])
+      const [x, y] = toScreen(frame, rotateY([pos[0], pos[1] + BEAN_HEIGHT + 0.12, pos[2]], q))
       return { a, x, y }
     })
     const rank = (a: SceneAvatar) => (a.isMe ? 0 : a.id === selected ? 1 : 2)
-    const ordered = [...items].sort((p, q) => rank(p.a) - rank(q.a))
+    const ordered = [...items].sort((p, r) => rank(p.a) - rank(r.a))
     const pinned = new Set(items.filter((p) => rank(p.a) < 2).map((p) => p.a.id))
     const full = fullLabels(
       ordered.map(({ a, x, y }) => ({ id: a.id, x, y, width: labelWidth(a.name, a.clock), height: 26 })),
@@ -519,6 +757,13 @@ export default function IsoRoom({
       role="group"
       aria-label={label}
       data-scene-ready={ready || undefined}
+      data-turn={editing ? undefined : q}
+      style={editing ? undefined : { touchAction: zoomed ? 'none' : 'pan-y' }}
+      onPointerDown={editing ? undefined : onPointerDown}
+      onPointerMove={editing ? undefined : onPointerMove}
+      onPointerUp={editing ? undefined : onPointerEnd}
+      onPointerCancel={editing ? undefined : onPointerEnd}
+      onPointerLeave={editing ? undefined : onPointerEnd}
     >
       {frame && env && (
         <Canvas
@@ -530,7 +775,7 @@ export default function IsoRoom({
           shadows={shadows}
           camera={{ position: [10, 10, 10], zoom: frame.zoom, near: 0.1, far: 200 }}
           gl={{ antialias: true, powerPreference: 'low-power' }}
-          onPointerMissed={() => setSelected(null)}
+          onPointerMissed={() => tapped() && setSelected(null)}
           onCreated={({ gl }) => {
             setReady(true)
             // Browsers evict the oldest context when a page has too many; a fresh canvas gets a new one.
@@ -546,58 +791,69 @@ export default function IsoRoom({
           aria-hidden="true"
         >
           <SceneContext.Provider value={env}>
-            <CameraRig frame={frame} />
             <Ticker active={!reducedMotion && avatars.length > 0} />
             <hemisphereLight args={[LIGHT.sky, LIGHT.ground, night ? 1.1 : 1.9]} />
             <ambientLight intensity={night ? 0.35 : 0.6} />
             <KeyLight size={size} shadows={shadows} night={night} />
-            {lampOn &&
-              lamps.map((p) => (
-                <pointLight
-                  key={p.join()}
-                  position={p}
-                  color={colors.glow}
-                  intensity={night ? 5 : 2}
-                  distance={5}
-                  decay={1.6}
-                />
-              ))}
-            <Shell size={size} />
-            <Items layout={layout} size={size} onTapItem={edit?.onTapItem} />
-            {edit && <EditSurfaces size={size} edit={edit} />}
-            {edit && edit.selected !== null && layout[edit.selected] && (
-              <Footprint item={layout[edit.selected] as LayoutItem} size={size} color={colors.accent} />
-            )}
-            {edit?.ghost && (
-              <>
-                <ItemAt item={edit.ghost} size={size} />
-                <Footprint item={edit.ghost} size={size} color={edit.ghostOk ? colors.good : colors.danger} />
-              </>
-            )}
-            {!edit &&
-              placed.map(({ a, seat, pos }) => (
-                <group key={a.id}>
-                  {seat.kind === 'cushion' && (
-                    <group position={[pos[0], 0, pos[2]]}>
-                      <Cushion color={a.isMe ? colors.accent : colors.rest} />
-                    </group>
-                  )}
-                  <Bean3D
-                    id={a.id}
-                    avatar={a.avatar}
-                    seat={seat.height >= 0.3 ? 'chair' : 'floor'}
-                    state={a.state}
-                    position={pos}
-                    facing={seat.facing * QUARTER}
-                    from={walkIn && !firstIds.has(a.id) ? door : undefined}
-                    onSelect={() => select(a.id)}
+            <TurningWorld
+              frame={frame}
+              angle={editing ? 0 : turn * QUARTER}
+              animate={moving}
+              onSettled={() => setMoving(false)}
+              onClick={pickSeat}
+            >
+              {lampOn &&
+                lamps.map((p) => (
+                  <pointLight
+                    key={p.join()}
+                    position={p}
+                    color={colors.glow}
+                    intensity={night ? 5 : 2}
+                    distance={5}
+                    decay={1.6}
                   />
-                </group>
-              ))}
+                ))}
+              <Shell size={size} sides={sides} />
+              <Items layout={layout} size={size} sides={sides} onTapItem={edit?.onTapItem} />
+              {edit && <EditSurfaces size={size} edit={edit} />}
+              {edit && edit.selected !== null && layout[edit.selected] && (
+                <Footprint item={layout[edit.selected] as LayoutItem} size={size} color={colors.accent} />
+              )}
+              {edit?.ghost && (
+                <>
+                  <ItemAt item={edit.ghost} size={size} />
+                  <Footprint
+                    item={edit.ghost}
+                    size={size}
+                    color={edit.ghostOk ? colors.good : colors.danger}
+                  />
+                </>
+              )}
+              {!edit &&
+                placed.map(({ a, seat, pos }) => (
+                  <group key={a.id}>
+                    {seat.kind === 'cushion' && (
+                      <group position={[pos[0], 0, pos[2]]}>
+                        <Cushion color={a.isMe ? colors.accent : colors.rest} />
+                      </group>
+                    )}
+                    <Bean3D
+                      id={a.id}
+                      avatar={a.avatar}
+                      seat={seat.height >= 0.3 ? 'chair' : 'floor'}
+                      state={a.state}
+                      position={pos}
+                      facing={seat.facing * QUARTER}
+                      from={walkIn && !firstIds.has(a.id) ? door : undefined}
+                      onSelect={() => select(a.id)}
+                    />
+                  </group>
+                ))}
+            </TurningWorld>
           </SceneContext.Provider>
         </Canvas>
       )}
-      {frame && ready && !edit && (
+      {frame && ready && !edit && !moving && (
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
           {labels.map(({ a, x, y, full }) => {
             const fresh = walkIn && !firstIds.has(a.id)
@@ -631,6 +887,65 @@ export default function IsoRoom({
               </div>
             )
           })}
+        </div>
+      )}
+      {frame && ready && !edit && (
+        <div
+          className="absolute right-2 top-2 z-10 flex gap-1"
+          role="toolbar"
+          aria-label={copy.room.view.controls}
+          title={copy.room.view.hint}
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          <button
+            type="button"
+            className="scene-ctl"
+            aria-label={copy.room.view.turnLeft}
+            onClick={() => turnBy(-1)}
+          >
+            ⟲
+          </button>
+          <button
+            type="button"
+            className="scene-ctl"
+            aria-label={copy.room.view.turnRight}
+            onClick={() => turnBy(1)}
+          >
+            ⟳
+          </button>
+          <button
+            type="button"
+            className="scene-ctl"
+            aria-label={copy.room.view.zoomOut}
+            disabled={!zoomed}
+            onClick={() => zoomTo(zoom / ZOOM_STEP)}
+          >
+            −
+          </button>
+          <button
+            type="button"
+            className="scene-ctl"
+            aria-label={copy.room.view.zoomIn}
+            disabled={zoom >= MAX_VIEW_ZOOM - 0.01}
+            onClick={() => zoomTo(zoom * ZOOM_STEP)}
+          >
+            +
+          </button>
+          {onPickSeat && nextChair !== null && (
+            <button
+              type="button"
+              className="scene-ctl"
+              aria-label={copy.room.view.nextChair}
+              onClick={() => onPickSeat(nextChair)}
+            >
+              ⇄
+            </button>
+          )}
+          {!plainView && (
+            <button type="button" className="scene-ctl" aria-label={copy.room.view.reset} onClick={resetView}>
+              ⌂
+            </button>
+          )}
         </div>
       )}
     </div>

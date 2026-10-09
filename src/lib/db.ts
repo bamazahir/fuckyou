@@ -106,6 +106,8 @@ export interface LiveMember {
   status_line: string | null
   sitting_seconds: number
   break_until: string | null
+  /** The chair this person picked (an index into the room's seat list), if any. */
+  seat?: number | null
 }
 
 export interface RoomMember {

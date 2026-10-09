@@ -3,6 +3,7 @@ import { useDaypart } from '../../components/useDaypart'
 import { copy } from '../../content/copy'
 import { DEFAULT_PERSONAL, PERSONAL_SIZE } from '../../content/layouts'
 import { useAuth } from '../../stores/auth'
+import { usePersonalSeat } from '../../stores/seat'
 import { useTimer } from '../../stores/timer'
 import { useWallet } from '../../stores/wallet'
 import { RoomView } from '../room/RoomView'
@@ -15,6 +16,8 @@ export function PersonalRoomView({ className }: { className: string }) {
   const phase = useTimer((s) => s.phase)
   const saved = useWallet((s) => s.personalLayout)
   const style = useWallet((s) => s.personalStyle)
+  const seat = usePersonalSeat((s) => s.seat)
+  const pickSeat = usePersonalSeat((s) => s.pick)
   if (!profile) return null
   const focusing = phase.name === 'running' && phase.session.room_id === personalRoomId
   const state = focusing ? 'focus' : phase.name === 'break' ? 'break' : 'idle'
@@ -27,6 +30,7 @@ export function PersonalRoomView({ className }: { className: string }) {
       layout={saved && saved.length > 0 ? saved : DEFAULT_PERSONAL}
       roomStyle={style}
       walkIn={false}
+      onPickSeat={pickSeat}
       avatars={[
         {
           id: profile.id,
@@ -35,6 +39,7 @@ export function PersonalRoomView({ className }: { className: string }) {
           state,
           clock: null,
           isMe: true,
+          seat,
           ariaLabel: `${profile.display_name}, ${stateLabel}`,
         },
       ]}

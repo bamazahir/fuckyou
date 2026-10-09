@@ -530,7 +530,10 @@ export function Bean3D({
   /** Rotation about y, radians (0 = facing +z). */
   facing: number
   seat: 'chair' | 'floor'
-  /** Where the walk-in starts; omit to appear in place. Position and facing are applied per frame. */
+  /**
+   * Where the walk-in starts; omit to appear in place. Position and facing are applied per frame, and
+   * a new position is walked to.
+   */
   from?: V3
   onSelect?: () => void
   /** Stand instead of sitting (portraits and the editor preview). */
@@ -549,8 +552,16 @@ export function Bean3D({
   const armR = useRef<Group>(null)
   const legL = useRef<Group>(null)
   const legR = useRef<Group>(null)
-  const born = useRef<number | null>(null)
+  const born = useRef<{ key: string; t: number } | null>(null)
   const [walking, setWalking] = useState(() => from !== undefined && !reducedMotion)
+  // Changing seats: walk from the old seat to the new one (derived state, updated during render).
+  const posKey = position.join()
+  const [track, setTrack] = useState(() => ({ key: posKey, pos: position, from }))
+  if (track.key !== posKey) {
+    setTrack({ key: posKey, pos: position, from: reducedMotion ? undefined : track.pos })
+    setWalking(!reducedMotion)
+  }
+  const start = track.from
   const phase = hash(id) * Math.PI * 2
   const pose: Pose = walking || standing ? 'stand' : seat
   const hip = pose === 'stand' ? HIP_STAND : HIP_SIT
@@ -560,12 +571,12 @@ export function Bean3D({
     const o = outer.current
     if (!o) return
     const now = clock.elapsedTime
-    born.current ??= now
-    const walk = walking && from ? Math.min(1, (now - born.current) / 1.4) : 1
-    if (walking && from) {
+    if (born.current?.key !== track.key) born.current = { key: track.key, t: now }
+    const walk = walking && start ? Math.min(1, (now - born.current.t) / 1.4) : 1
+    if (walking && start) {
       const k = easeOut(walk)
-      o.position.set(from[0] + (position[0] - from[0]) * k, 0, from[2] + (position[2] - from[2]) * k)
-      o.rotation.y = Math.atan2(position[0] - from[0], position[2] - from[2])
+      o.position.set(start[0] + (position[0] - start[0]) * k, 0, start[2] + (position[2] - start[2]) * k)
+      o.rotation.y = Math.atan2(position[0] - start[0], position[2] - start[2])
       if (walk >= 1) setWalking(false)
     } else {
       o.position.set(position[0], position[1], position[2])

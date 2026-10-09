@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { cellCenter, isoFrame, isoProject, toScreen } from './iso'
+import { cellCenter, isoFrame, isoProject, rotateY, toScreen, viewFrame, visibleWalls } from './iso'
 
 describe('isoProject', () => {
   it('puts the origin in the middle and +y straight up', () => {
@@ -65,5 +65,53 @@ describe('cellCenter', () => {
   it('centres the grid on the origin', () => {
     expect(cellCenter(0, 0, 8)).toEqual([-3.5, -3.5])
     expect(cellCenter(7, 7, 8)).toEqual([3.5, 3.5])
+  })
+})
+
+describe('turning the room', () => {
+  it('rotates like three.js rotation.y', () => {
+    expect(rotateY([1, 2, 0], 1)).toEqual([0, 2, -1])
+    expect(rotateY([1, 2, 0], 2)).toEqual([-1, 2, 0])
+    expect(rotateY([0, 0, 1], 1)).toEqual([1, 0, 0])
+  })
+  it('keeps the two far walls in view', () => {
+    expect(visibleWalls(0)).toEqual(['n', 'w'])
+    expect(visibleWalls(1)).toEqual(['n', 'e'])
+    expect(visibleWalls(2)).toEqual(['s', 'e'])
+    expect(visibleWalls(3)).toEqual(['w', 's'])
+  })
+})
+
+describe('viewFrame', () => {
+  const base = isoFrame(
+    [
+      [-4, 0, -4],
+      [4, 0, 4],
+      [-4, 2.5, 4],
+      [4, 2.5, -4],
+    ],
+    400,
+    300,
+  )
+  it('is the fitted view at 1×, whatever the pan', () => {
+    const { frame, pan } = viewFrame(base, 1, [5, -5])
+    expect(pan).toEqual([0, 0])
+    expect(frame.zoom).toBeCloseTo(base.zoom)
+    expect(frame.center).toEqual(base.center)
+  })
+  it('zooms in and keeps the target on the screen centre', () => {
+    const { frame } = viewFrame(base, 2, [0.5, 0.25])
+    expect(frame.zoom).toBeCloseTo(base.zoom * 2)
+    const [tx, ty] = isoProject(frame.target)
+    expect(tx).toBeCloseTo(base.center[0] + 0.5)
+    expect(ty).toBeCloseTo(base.center[1] + 0.25)
+  })
+  it('never pans past the fitted view', () => {
+    const { pan } = viewFrame(base, 2, [1000, -1000])
+    expect(pan[0]).toBeCloseTo(base.width / base.zoom / 4)
+    expect(pan[1]).toBeCloseTo(-base.height / base.zoom / 4)
+  })
+  it('caps the zoom', () => {
+    expect(viewFrame(base, 50, [0, 0]).frame.zoom).toBeCloseTo(base.zoom * 3)
   })
 })

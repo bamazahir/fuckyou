@@ -13,7 +13,11 @@ function readLocal(): ThemeChoice {
   }
 }
 
-/** Writes data-theme / data-mode on <html> and keeps the browser chrome color in step. */
+/**
+ * Writes data-theme / data-mode on <html> and keeps the browser chrome color in step. The chrome
+ * color is the page background (not the nav): on iPhone the top bar sits over the page, and a
+ * mismatched tint there reads as a blurry band.
+ */
 export function applyTheme(choice: ThemeChoice, now: Date = new Date()): 'light' | 'dark' {
   const mode = resolveMode(choice.mode, now.getHours())
   const root = document.documentElement
@@ -21,7 +25,7 @@ export function applyTheme(choice: ThemeChoice, now: Date = new Date()): 'light'
   root.dataset.mode = mode
   document
     .querySelector('meta[name="theme-color"]')
-    ?.setAttribute('content', THEME_PREVIEWS[choice.theme][mode].nav)
+    ?.setAttribute('content', THEME_PREVIEWS[choice.theme][mode].bg)
   return mode
 }
 

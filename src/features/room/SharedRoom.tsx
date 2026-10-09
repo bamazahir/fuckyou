@@ -8,7 +8,7 @@ import { NoWebGL } from '../../components/NoWebGL'
 import { ErrorText } from '../../components/Screen'
 import { useDaypart } from '../../components/useDaypart'
 import { useNow } from '../../components/useNow'
-import { copy } from '../../content/copy'
+import { copy, errorMessage } from '../../content/copy'
 import { DEFAULT_SHARED, SHARED_SIZE } from '../../content/layouts'
 import { joinOrder, liveClock } from '../../core/live'
 import { roomBanner, shortDuration } from '../../core/room'
@@ -55,6 +55,7 @@ function toSceneAvatar(m: LiveMember, meId: string, nowMs: number, bubble?: stri
     clock,
     bubble,
     isMe: m.user_id === meId,
+    seat: m.seat ?? null,
     ariaLabel: [
       t.label(m.display_name, focusing ? t.focusingLabel : t.onBreak, clock),
       focusing ? m.status_line : null,
@@ -93,6 +94,8 @@ export function SharedRoom({ room }: { room: MyRoom }) {
   const [membersKey, setMembersKey] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [leaving, setLeaving] = useState(false)
+  // The chair you just tapped, shown until the next live update (which has it, or not).
+  const [seatPick, setSeatPick] = useState<{ seat: number; over: typeof live } | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -140,8 +143,19 @@ export function SharedRoom({ room }: { room: MyRoom }) {
   const byId = new Map(liveRows.map((r) => [r.user_id, r]))
   const sceneAvatars = joinOrder(liveRows, now).flatMap((id) => {
     const row = byId.get(id)
-    return row && me ? [toSceneAvatar(row, me.id, now, bubbleFor(id))] : []
+    if (!row || !me) return []
+    const avatar = toSceneAvatar(row, me.id, now, bubbleFor(id))
+    return [avatar.isMe && seatPick?.over === live ? { ...avatar, seat: seatPick.seat } : avatar]
   })
+  async function pickSeat(seat: number) {
+    if (!mine) return toast(copy.room.view.sitFirst)
+    setSeatPick({ seat, over: live })
+    const { error: err } = await supabase.rpc('choose_seat', { p_room_id: room.id, p_seat: seat })
+    if (err) {
+      setSeatPick(null)
+      toast(errorMessage(rpcErrorCode(err) ?? 'unknown'))
+    } else refresh()
+  }
   const openById = (id: string) => {
     const member = members?.find((x) => x.user_id === id)
     if (member) setOpenMember(member)
@@ -240,6 +254,7 @@ export function SharedRoom({ room }: { room: MyRoom }) {
                 lampOn={studyingIds.length > 0 || daypart === 'night'}
                 label={t.sceneLabel(room.name)}
                 onSelect={openById}
+                onPickSeat={(seat) => void pickSeat(seat)}
                 fallback={
                   <div className="space-y-4 p-4">
                     <NoWebGL className="min-h-0 p-0" />

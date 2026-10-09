@@ -5,7 +5,7 @@ shared doc "Studyroom — open items" (https://claude.ai/code/artifact/37ce5a78-
 Agents: keep both in step, add new items when a milestone needs a device or a person, and never tick one yourself.
 
 ## Setup to do once (from the repo folder)
-- [ ] `pnpm dlx supabase db push` (enable pg_cron + pg_net first); migrations up to the latest in `supabase/migrations/` (currently `20261013100000_m8_discover_safety`). **This is why Shop and Decorate don't open yet: the app now says "needs a database update" until it's done.**
+- [ ] `pnpm dlx supabase db push` (enable pg_cron + pg_net first); migrations up to the latest in `supabase/migrations/` (currently `20261014000000_m9_seats_looks`). **This is why Shop and Decorate don't open yet: the app now says "needs a database update" until it's done.**
 - [ ] Make yourself admin: `update public.profiles set is_admin = true where handle = '<you>';`
 - [ ] `node scripts/push/vapid.mjs` → VAPID keys; `openssl rand -hex 32` → PUSH_SECRET
 - [ ] `supabase secrets set VAPID_PUBLIC_KEY VAPID_PRIVATE_KEY VAPID_SUBJECT=mailto:… PUSH_SECRET APP_URL`
@@ -57,4 +57,8 @@ reaction/nudge counts (accepted, decision 0010) · 13–15 consent outside the s
 - [ ] Hub update: decide whether Discover is OK for your school before anyone lists a room (same-age-group only, names and counts only, no chat); re-check before any wider rollout
 - [ ] Hub update device check: Stats, Rooms and You pages on a phone; the 5-tab bar fits; the 3D bean preview on You turns smoothly on a mid-range Android
 - [ ] Hub update device check: start a timer in My Room, open a shared room, tap "Move here"; a second device in that room sees you arrive
+- [ ] Room view update (decision 0015) device check: on your iPhone (Safari and the installed app), the top of the app is no longer blurred or tinted under the clock and notch
+- [ ] Room view update device check: on a phone, swipe sideways on the room to turn it, pinch to zoom, drag to look around while zoomed; the page still scrolls up and down when you swipe vertically on the room
+- [ ] Room view update device check: tap an empty chair to sit there (in My Room and while studying in a shared room); a second device in the shared room sees you move chairs
+- [ ] Room view update: say whether the turn/zoom buttons over the room feel in the way on Home's small room preview (they could be hidden there)
 
