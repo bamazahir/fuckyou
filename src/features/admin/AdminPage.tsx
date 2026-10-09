@@ -4,6 +4,7 @@ import { copy } from '../../content/copy'
 import type { ReportRow } from '../../lib/db'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../stores/auth'
+import { AdminMetrics } from './AdminMetrics'
 
 const t = copy.admin
 type Action = 'dismiss' | 'remove_content' | 'ban_user' | 'delete_room'
@@ -33,59 +34,63 @@ export function AdminPage() {
   }
 
   return (
-    <div className="space-y-5">
-      <h1 className="font-display text-3xl font-bold">{t.title}</h1>
-      {reports !== null && reports.length === 0 && <p className="text-on-bg-muted">{t.empty}</p>}
-      <ul className="space-y-3">
-        {(reports ?? []).map((r) => (
-          <li key={r.id} className="card p-4">
-            <p className="font-bold">
-              {copy.reportSheet.reasons[r.reason as keyof typeof copy.reportSheet.reasons] ?? r.reason} ·{' '}
-              {r.target_type}
-            </p>
-            <p className="text-sm text-muted">
-              {r.target_display_name ? `${r.target_display_name} (@${r.target_handle ?? '?'})` : ''}{' '}
-              {r.room_name ? `in ${r.room_name}` : ''}
-            </p>
-            {r.context && <p className="mt-2 rounded-md bg-surface-2 p-2 text-sm">“{r.context}”</p>}
-            {r.note && <p className="mt-2 text-sm">{r.note}</p>}
-            <div className="mt-3 flex flex-wrap gap-2">
-              <button
-                type="button"
-                className="btn btn-secondary text-sm"
-                onClick={() => void act(r.id, 'dismiss', t.dismiss)}
-              >
-                {t.dismiss}
-              </button>
-              <button
-                type="button"
-                className="btn btn-secondary text-sm"
-                onClick={() => void act(r.id, 'remove_content', t.removeContent)}
-              >
-                {t.removeContent}
-              </button>
-              {r.target_user_id && (
+    <div className="space-y-8">
+      <h1 className="font-display text-3xl font-bold">{t.page}</h1>
+      <AdminMetrics />
+      <div className="space-y-5">
+        <h2 className="font-display text-2xl font-bold">{t.title}</h2>
+        {reports !== null && reports.length === 0 && <p className="text-on-bg-muted">{t.empty}</p>}
+        <ul className="space-y-3">
+          {(reports ?? []).map((r) => (
+            <li key={r.id} className="card p-4">
+              <p className="font-bold">
+                {copy.reportSheet.reasons[r.reason as keyof typeof copy.reportSheet.reasons] ?? r.reason} ·{' '}
+                {r.target_type}
+              </p>
+              <p className="text-sm text-muted">
+                {r.target_display_name ? `${r.target_display_name} (@${r.target_handle ?? '?'})` : ''}{' '}
+                {r.room_name ? `in ${r.room_name}` : ''}
+              </p>
+              {r.context && <p className="mt-2 rounded-md bg-surface-2 p-2 text-sm">“{r.context}”</p>}
+              {r.note && <p className="mt-2 text-sm">{r.note}</p>}
+              <div className="mt-3 flex flex-wrap gap-2">
                 <button
                   type="button"
-                  className="btn btn-secondary text-sm text-danger"
-                  onClick={() => void act(r.id, 'ban_user', t.ban)}
+                  className="btn btn-secondary text-sm"
+                  onClick={() => void act(r.id, 'dismiss', t.dismiss)}
                 >
-                  {t.ban}
+                  {t.dismiss}
                 </button>
-              )}
-              {r.room_id && r.target_type === 'room' && (
                 <button
                   type="button"
-                  className="btn btn-secondary text-sm text-danger"
-                  onClick={() => void act(r.id, 'delete_room', t.deleteRoom)}
+                  className="btn btn-secondary text-sm"
+                  onClick={() => void act(r.id, 'remove_content', t.removeContent)}
                 >
-                  {t.deleteRoom}
+                  {t.removeContent}
                 </button>
-              )}
-            </div>
-          </li>
-        ))}
-      </ul>
+                {r.target_user_id && (
+                  <button
+                    type="button"
+                    className="btn btn-secondary text-sm text-danger"
+                    onClick={() => void act(r.id, 'ban_user', t.ban)}
+                  >
+                    {t.ban}
+                  </button>
+                )}
+                {r.room_id && r.target_type === 'room' && (
+                  <button
+                    type="button"
+                    className="btn btn-secondary text-sm text-danger"
+                    onClick={() => void act(r.id, 'delete_room', t.deleteRoom)}
+                  >
+                    {t.deleteRoom}
+                  </button>
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
   )
 }

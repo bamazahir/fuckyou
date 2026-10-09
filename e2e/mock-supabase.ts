@@ -210,6 +210,38 @@ export async function mockSupabase(page: Page, initial: Partial<MockState> = {})
         }
         case 'room_live':
           return json(route, state.live)
+        case 'admin_list_reports':
+          return json(route, [])
+        case 'admin_metrics':
+          return json(route, {
+            people: 7,
+            weekly: [
+              {
+                week: '2026-09-28',
+                wau: 3,
+                hours: 9.5,
+                sessions: 20,
+                sessions_per_user: 6.7,
+                sync_pomodoros: 4,
+                shared_pomodoros: 6,
+                solo_pomodoros: 8,
+                signups: 3,
+              },
+              {
+                week: '2026-10-05',
+                wau: 5,
+                hours: 14.2,
+                sessions: 31,
+                sessions_per_user: 6.2,
+                sync_pomodoros: 10,
+                shared_pomodoros: 9,
+                solo_pomodoros: 9,
+                signups: 4,
+              },
+            ],
+            daily: [{ day: '2026-10-09', dau: 2 }],
+            retention: [{ week: '2026-09-28', size: 3, d1: 2, d7: 1, d30: null }],
+          })
         case 'room_info':
           return json(route, state.roomInfo)
         case 'set_room_notify':

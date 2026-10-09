@@ -121,6 +121,7 @@ export function useRoomChannel(roomId: string) {
     (emoji: Reaction) => {
       if (!me || !allowSend.current('reaction', Date.now())) return false
       void channelRef.current?.send({ type: 'broadcast', event: 'reaction', payload: { from: me.id, emoji } })
+      void supabase.rpc('log_event', { p_name: 'reaction_sent', p_props: {} })
       setBubbles((b) => [...b, { userId: me.id, text: emoji, at: Date.now() }])
       return true
     },
@@ -135,6 +136,7 @@ export function useRoomChannel(roomId: string) {
         event: 'nudge',
         payload: { from: me.id, to, name: me.display_name },
       })
+      void supabase.rpc('log_event', { p_name: 'nudge_sent', p_props: {} })
       return true
     },
     [me],

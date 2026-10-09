@@ -102,7 +102,8 @@ export function App() {
     void useTimer.getState().loadActive()
     void useRooms.getState().loadBlocks()
     void usePush.getState().refresh()
-    void supabase.rpc('log_event', { p_name: 'app_open', p_props: {} })
+    const standalone = window.matchMedia('(display-mode: standalone)').matches
+    void supabase.rpc('log_event', { p_name: 'app_open', p_props: { standalone } })
     // Finish an invite that was opened before signing in.
     const code = pendingInvite.get()
     if (code) {

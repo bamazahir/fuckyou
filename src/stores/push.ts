@@ -105,6 +105,7 @@ export const usePush = create<PushState>((set, get) => ({
         p_auth: json.keys?.auth,
       })
       if (error) await sub.unsubscribe()
+      else void supabase.rpc('log_event', { p_name: 'push_enabled', p_props: {} })
     } catch {
       // the push service was unreachable; status below reflects what happened
     }
