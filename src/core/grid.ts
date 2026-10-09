@@ -3,12 +3,19 @@
 export type Rot = 0 | 1 | 2 | 3
 export type Layer = 'floor' | 'rug' | 'wall'
 
+export interface SeatSpec {
+  /** Height of the seat surface (world units). Below ~0.3 the sitter sits cross-legged. */
+  height: number
+  /** How far the sitter sits forward of the cell centre, towards where the seat faces. */
+  nudge: number
+}
+
 export interface ItemDef {
   id: string
   /** [width along x, depth along z] in cells, at rot 0. Wall items use only the width. */
   footprint: readonly [number, number]
   layer: Layer
-  seat?: boolean
+  seat?: SeatSpec
 }
 
 export interface LayoutItem {

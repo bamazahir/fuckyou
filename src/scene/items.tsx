@@ -1,6 +1,5 @@
 // Procedural furniture (studyroom-look §3, option 1: built in code, zero license risk).
 // Each model sits in its own frame: origin at the bottom-centre of the footprint, facing +z.
-import type { CatalogItem } from '../content/layouts'
 import { useScene } from './context'
 import { Ball, Box, Cylinder } from './parts'
 
@@ -24,12 +23,13 @@ function Legs({ w, d, h, color }: { w: number; d: number; h: number; color: stri
 }
 
 /** Study desk: the sitter is on the +z side. A modesty panel on the back hides their legs. */
-export function Desk() {
+export function Desk({ color }: { color?: string }) {
   const { c, lampOn } = useScene()
+  const top_ = color ?? c.wood
   const top = 0.72
   return (
     <group position={[0, 0, 0.08]}>
-      <Box size={[0.94, 0.06, 0.66]} position={[0, top, 0]} color={c.wood} />
+      <Box size={[0.94, 0.06, 0.66]} position={[0, top, 0]} color={top_} />
       <group position={[0, 0, 0]}>
         <Legs w={0.9} d={0.62} h={top - 0.03} color={c.woodDark} />
       </group>
@@ -64,23 +64,24 @@ export function Desk() {
 }
 
 /** Chair facing +z, nudged towards the desk so the sitter is close to it. */
-export function Chair() {
+export function Chair({ color }: { color?: string }) {
   const { c } = useScene()
+  const wood = color ?? c.wood
   const seat = 0.42
   return (
     <group position={[0, 0, 0.2]}>
-      <Box size={[0.46, 0.05, 0.44]} position={[0, seat, 0]} color={c.wood} />
+      <Box size={[0.46, 0.05, 0.44]} position={[0, seat, 0]} color={wood} />
       <Legs w={0.42} d={0.4} h={seat - 0.025} color={c.woodDark} />
-      <Box size={[0.46, 0.42, 0.05]} position={[0, seat + 0.24, -0.2]} color={c.wood} />
+      <Box size={[0.46, 0.42, 0.05]} position={[0, seat + 0.24, -0.2]} color={wood} />
     </group>
   )
 }
 
-export function Rug({ w, d }: { w: number; d: number }) {
+export function Rug({ w, d, color }: { w: number; d: number; color?: string }) {
   const { c } = useScene()
   return (
     <>
-      <Box size={[w - 0.3, 0.02, d - 0.3]} position={[0, 0.01, 0]} color={c.rug} shadow={false} />
+      <Box size={[w - 0.3, 0.02, d - 0.3]} position={[0, 0.01, 0]} color={color ?? c.rug} shadow={false} />
       <Box
         size={[w - 0.8, 0.022, d - 0.8]}
         position={[0, 0.011, 0]}
@@ -219,24 +220,4 @@ export function Window({ w }: { w: number }) {
 
 export function Cushion({ color }: { color: string }) {
   return <Cylinder top={0.24} bottom={0.26} height={0.1} segments={8} position={[0, 0.05, 0]} color={color} />
-}
-
-export function ItemModel({ def }: { def: CatalogItem }) {
-  const [w, d] = def.footprint
-  switch (def.model) {
-    case 'desk':
-      return <Desk />
-    case 'chair':
-      return <Chair />
-    case 'rug':
-      return <Rug w={w} d={d} />
-    case 'lamp':
-      return <Lamp />
-    case 'plant':
-      return <Plant />
-    case 'bookshelf':
-      return <Bookshelf w={w} />
-    case 'window':
-      return <Window w={w} />
-  }
 }

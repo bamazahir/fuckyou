@@ -259,7 +259,7 @@ function TopDetails({ look, top, hip }: { look: Look; top: string; hip: number }
 }
 
 /** Hats, glasses, headphones and bows, in the head's frame. */
-function HeadAccessories({ look }: { look: Look }) {
+function HeadAccessories({ look, hair }: { look: Look; hair: string }) {
   const a = look.accessories
   const big = look.hair === 'curly' ? 1.12 : 1
   return (
@@ -291,6 +291,50 @@ function HeadAccessories({ look }: { look: Look }) {
             </group>
           ))}
           <Ball radius={0.03} color={look.accent} />
+        </group>
+      )}
+      {a.has('beret') && (
+        <group position={[0.03, 0.2 * big, -0.02]} rotation={[-0.2, 0, -0.25]}>
+          <group scale={[1.05, 0.32, 1.05]}>
+            <Ball radius={0.29} detail={2} color={look.accent} />
+          </group>
+          <Ball radius={0.03} position={[0, 0.1, 0]} color={look.accent} outline={false} />
+        </group>
+      )}
+      {a.has('cat_ears') &&
+        [-1, 1].map((side) => (
+          <group key={side} position={[side * 0.15 * big, 0.25 * big, 0]} rotation={[0, 0, -side * 0.35]}>
+            <Cylinder top={0.001} bottom={0.08} height={0.15} segments={4} color={hair} />
+            <Cylinder
+              top={0.001}
+              bottom={0.045}
+              height={0.09}
+              segments={4}
+              position={[0, -0.01, 0.03]}
+              color={FACE.blush}
+              outline={false}
+            />
+          </group>
+        ))}
+      {a.has('flower') && (
+        <group position={[0.19 * big, 0.17 * big, 0.12]}>
+          {[0, 1.26, 2.51, 3.77, 5.03].map((t) => (
+            <Ball
+              key={t}
+              radius={0.035}
+              position={[Math.cos(t) * 0.045, Math.sin(t) * 0.045, 0]}
+              color={look.accent}
+            />
+          ))}
+          <Ball radius={0.025} position={[0, 0, 0.02]} color={FACE.collar} outline={false} />
+        </group>
+      )}
+      {a.has('shades') && (
+        <group position={[0, -0.015, HEAD_R + 0.012]}>
+          {[-0.09, 0.09].map((x) => (
+            <Box key={x} size={[0.12, 0.075, 0.015]} position={[x, 0, 0]} color={FACE.eye} outline={false} />
+          ))}
+          <Box size={[0.07, 0.014, 0.012]} position={[0, 0.02, 0]} color={FACE.eye} outline={false} />
         </group>
       )}
       {a.has('glasses') && (
@@ -499,7 +543,7 @@ export function Bean3D({
           </group>
           <Face />
           <Hair style={look.hair} color={colors.hair} hat={hatOn} />
-          <HeadAccessories look={look} />
+          <HeadAccessories look={look} hair={colors.hair} />
         </group>
       </group>
     </group>

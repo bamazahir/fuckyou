@@ -3,39 +3,136 @@
     {
       "id": "desk_oak",
       "name": "Oak desk",
+      "category": "furniture",
       "model": "desk",
       "footprint": [1, 1],
       "layer": "floor",
       "price": 120
     },
     {
+      "id": "desk_white",
+      "name": "White desk",
+      "category": "furniture",
+      "model": "desk",
+      "tint": "paper",
+      "footprint": [1, 1],
+      "layer": "floor",
+      "price": 160
+    },
+    {
       "id": "chair_wood",
       "name": "Wooden chair",
+      "category": "furniture",
       "model": "chair",
       "footprint": [1, 1],
       "layer": "floor",
-      "seat": true,
+      "seat": { "height": 0.445, "nudge": 0.2 },
       "price": 60
     },
     {
-      "id": "rug_stripe",
-      "name": "Striped rug",
-      "model": "rug",
-      "footprint": [3, 3],
-      "layer": "rug",
-      "price": 80
+      "id": "chair_red",
+      "name": "Red chair",
+      "category": "furniture",
+      "model": "chair",
+      "tint": "danger",
+      "footprint": [1, 1],
+      "layer": "floor",
+      "seat": { "height": 0.445, "nudge": 0.2 },
+      "price": 90
     },
     {
-      "id": "rug_long",
-      "name": "Big rug",
-      "model": "rug",
-      "footprint": [4, 6],
-      "layer": "rug",
-      "price": 140
+      "id": "stool",
+      "name": "Stool",
+      "category": "furniture",
+      "model": "stool",
+      "footprint": [1, 1],
+      "layer": "floor",
+      "seat": { "height": 0.5, "nudge": 0.15 },
+      "price": 50
+    },
+    {
+      "id": "armchair",
+      "name": "Armchair",
+      "category": "furniture",
+      "model": "armchair",
+      "tint": "rest",
+      "footprint": [1, 1],
+      "layer": "floor",
+      "seat": { "height": 0.4, "nudge": 0.05 },
+      "price": 300
+    },
+    {
+      "id": "beanbag",
+      "name": "Beanbag",
+      "category": "furniture",
+      "model": "beanbag",
+      "tint": "accent",
+      "footprint": [1, 1],
+      "layer": "floor",
+      "seat": { "height": 0.22, "nudge": 0 },
+      "price": 180
+    },
+    {
+      "id": "sofa",
+      "name": "Sofa",
+      "category": "furniture",
+      "model": "sofa",
+      "tint": "good",
+      "footprint": [2, 1],
+      "layer": "floor",
+      "seat": { "height": 0.42, "nudge": 0.05 },
+      "price": 450
+    },
+    {
+      "id": "bookshelf",
+      "name": "Bookshelf",
+      "category": "furniture",
+      "model": "bookshelf",
+      "footprint": [2, 1],
+      "layer": "floor",
+      "price": 220
+    },
+    {
+      "id": "bookshelf_tall",
+      "name": "Tall bookcase",
+      "category": "furniture",
+      "model": "tallshelf",
+      "footprint": [1, 1],
+      "layer": "floor",
+      "price": 160
+    },
+    {
+      "id": "side_table",
+      "name": "Side table",
+      "category": "furniture",
+      "model": "sidetable",
+      "footprint": [1, 1],
+      "layer": "floor",
+      "price": 70
+    },
+    {
+      "id": "bed",
+      "name": "Bed",
+      "category": "furniture",
+      "model": "bed",
+      "tint": "rest",
+      "footprint": [2, 3],
+      "layer": "floor",
+      "price": 600
+    },
+    {
+      "id": "crate",
+      "name": "Crate",
+      "category": "furniture",
+      "model": "crate",
+      "footprint": [1, 1],
+      "layer": "floor",
+      "price": 30
     },
     {
       "id": "lamp_floor",
       "name": "Floor lamp",
+      "category": "decor",
       "model": "lamp",
       "footprint": [1, 1],
       "layer": "floor",
@@ -45,26 +142,198 @@
     {
       "id": "plant_pot",
       "name": "Potted plant",
+      "category": "decor",
       "model": "plant",
       "footprint": [1, 1],
       "layer": "floor",
       "price": 40
     },
     {
-      "id": "bookshelf",
-      "name": "Bookshelf",
-      "model": "bookshelf",
-      "footprint": [2, 1],
+      "id": "plant_tall",
+      "name": "Tall plant",
+      "category": "decor",
+      "model": "tallplant",
+      "footprint": [1, 1],
       "layer": "floor",
-      "price": 220
+      "price": 120
+    },
+    {
+      "id": "cactus",
+      "name": "Cactus",
+      "category": "decor",
+      "model": "cactus",
+      "footprint": [1, 1],
+      "layer": "floor",
+      "price": 35
+    },
+    {
+      "id": "globe",
+      "name": "Globe",
+      "category": "decor",
+      "model": "globe",
+      "footprint": [1, 1],
+      "layer": "floor",
+      "price": 140
+    },
+    {
+      "id": "book_pile",
+      "name": "Pile of books",
+      "category": "decor",
+      "model": "bookpile",
+      "footprint": [1, 1],
+      "layer": "floor",
+      "price": 25
+    },
+    {
+      "id": "radio",
+      "name": "Radio",
+      "category": "decor",
+      "model": "radio",
+      "footprint": [1, 1],
+      "layer": "floor",
+      "price": 110
+    },
+    {
+      "id": "fish_tank",
+      "name": "Fish tank",
+      "category": "decor",
+      "model": "fishtank",
+      "footprint": [1, 1],
+      "layer": "floor",
+      "light": true,
+      "price": 900
+    },
+    {
+      "id": "cat",
+      "name": "Sleepy cat",
+      "category": "decor",
+      "model": "cat",
+      "footprint": [1, 1],
+      "layer": "floor",
+      "price": 800
+    },
+    {
+      "id": "telescope",
+      "name": "Telescope",
+      "category": "decor",
+      "model": "telescope",
+      "footprint": [1, 1],
+      "layer": "floor",
+      "price": 1500
+    },
+    {
+      "id": "rug_stripe",
+      "name": "Striped rug",
+      "category": "decor",
+      "model": "rug",
+      "footprint": [3, 3],
+      "layer": "rug",
+      "price": 80
+    },
+    {
+      "id": "rug_long",
+      "name": "Big rug",
+      "category": "decor",
+      "model": "rug",
+      "tint": "good",
+      "footprint": [4, 6],
+      "layer": "rug",
+      "price": 140
+    },
+    {
+      "id": "rug_round",
+      "name": "Round rug",
+      "category": "decor",
+      "model": "roundrug",
+      "footprint": [3, 3],
+      "layer": "rug",
+      "price": 120
     },
     {
       "id": "window_double",
       "name": "Window",
+      "category": "wall",
       "model": "window",
       "footprint": [2, 1],
       "layer": "wall",
       "price": 150
+    },
+    {
+      "id": "poster",
+      "name": "Poster",
+      "category": "wall",
+      "model": "poster",
+      "footprint": [1, 1],
+      "layer": "wall",
+      "price": 45
+    },
+    {
+      "id": "clock",
+      "name": "Wall clock",
+      "category": "wall",
+      "model": "clock",
+      "footprint": [1, 1],
+      "layer": "wall",
+      "price": 75
+    },
+    {
+      "id": "corkboard",
+      "name": "Corkboard",
+      "category": "wall",
+      "model": "corkboard",
+      "footprint": [2, 1],
+      "layer": "wall",
+      "price": 95
+    },
+    {
+      "id": "wall_shelf",
+      "name": "Wall shelf",
+      "category": "wall",
+      "model": "wallshelf",
+      "footprint": [2, 1],
+      "layer": "wall",
+      "price": 130
+    },
+    {
+      "id": "fairy_lights",
+      "name": "Fairy lights",
+      "category": "wall",
+      "model": "lights",
+      "footprint": [3, 1],
+      "layer": "wall",
+      "light": true,
+      "price": 200
+    },
+    {
+      "id": "whiteboard",
+      "name": "Whiteboard",
+      "category": "wall",
+      "model": "whiteboard",
+      "footprint": [2, 1],
+      "layer": "wall",
+      "price": 160
     }
-  ]
+  ],
+  "accessories": [
+    { "id": "beret", "name": "Beret", "slot": "head", "price": 250 },
+    { "id": "cat_ears", "name": "Cat ears", "slot": "head", "price": 400 },
+    { "id": "flower", "name": "Flower clip", "slot": "head", "price": 150 },
+    { "id": "shades", "name": "Sunglasses", "slot": "face", "price": 300 }
+  ],
+  "starter": {
+    "personal": ["rug_stripe", "desk_oak", "chair_wood", "lamp_floor", "plant_pot", "window_double"],
+    "shared": [
+      "rug_long",
+      "desk_oak",
+      "desk_oak",
+      "desk_oak",
+      "desk_oak",
+      "chair_wood",
+      "chair_wood",
+      "chair_wood",
+      "chair_wood",
+      "bookshelf",
+      "window_double"
+    ]
+  }
 }

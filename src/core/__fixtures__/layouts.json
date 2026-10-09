@@ -1,0 +1,155 @@
+{
+  "note": "Shared vectors: src/core/grid.test.ts and the generated pgTAP file 08_m5_layout_fixtures.test.sql must agree (SPEC §15 M5).",
+  "cases": [
+    { "name": "empty room", "size": 8, "layout": [], "error": null },
+    {
+      "name": "starter personal room",
+      "size": 8,
+      "layout": [
+        { "item_id": "rug_stripe", "x": 1, "z": 1, "rot": 0 },
+        { "item_id": "desk_oak", "x": 2, "z": 3, "rot": 2 },
+        { "item_id": "chair_wood", "x": 2, "z": 2, "rot": 0 },
+        { "item_id": "lamp_floor", "x": 1, "z": 3, "rot": 0 },
+        { "item_id": "plant_pot", "x": 0, "z": 0, "rot": 0 },
+        { "item_id": "window_double", "x": 2, "z": 0, "rot": 0 }
+      ],
+      "error": null
+    },
+    {
+      "name": "furniture may stand on a rug",
+      "size": 8,
+      "layout": [
+        { "item_id": "rug_stripe", "x": 0, "z": 0, "rot": 0 },
+        { "item_id": "desk_oak", "x": 1, "z": 1, "rot": 0 }
+      ],
+      "error": null
+    },
+    {
+      "name": "two pieces of furniture on one cell",
+      "size": 8,
+      "layout": [
+        { "item_id": "desk_oak", "x": 3, "z": 3, "rot": 0 },
+        { "item_id": "chair_wood", "x": 3, "z": 3, "rot": 1 }
+      ],
+      "error": "overlap",
+      "index": 1
+    },
+    {
+      "name": "a two-wide shelf overlapping a desk",
+      "size": 8,
+      "layout": [
+        { "item_id": "desk_oak", "x": 4, "z": 0, "rot": 0 },
+        { "item_id": "bookshelf", "x": 3, "z": 0, "rot": 0 }
+      ],
+      "error": "overlap",
+      "index": 1
+    },
+    {
+      "name": "rotated shelf runs along z",
+      "size": 8,
+      "layout": [{ "item_id": "bookshelf", "x": 0, "z": 6, "rot": 1 }],
+      "error": null
+    },
+    {
+      "name": "rotated shelf off the far edge",
+      "size": 8,
+      "layout": [{ "item_id": "bookshelf", "x": 0, "z": 7, "rot": 1 }],
+      "error": "out_of_bounds",
+      "index": 0
+    },
+    {
+      "name": "negative cell",
+      "size": 8,
+      "layout": [{ "item_id": "desk_oak", "x": -1, "z": 0, "rot": 0 }],
+      "error": "out_of_bounds",
+      "index": 0
+    },
+    {
+      "name": "a big rug past the edge of a small room",
+      "size": 8,
+      "layout": [{ "item_id": "rug_long", "x": 5, "z": 0, "rot": 0 }],
+      "error": "out_of_bounds",
+      "index": 0
+    },
+    {
+      "name": "the big rug fits a shared room",
+      "size": 12,
+      "layout": [{ "item_id": "rug_long", "x": 5, "z": 0, "rot": 0 }],
+      "error": null
+    },
+    {
+      "name": "unknown item",
+      "size": 8,
+      "layout": [{ "item_id": "throne", "x": 0, "z": 0, "rot": 0 }],
+      "error": "unknown_item",
+      "index": 0
+    },
+    {
+      "name": "an accessory is not furniture",
+      "size": 8,
+      "layout": [{ "item_id": "beret", "x": 0, "z": 0, "rot": 0 }],
+      "error": "unknown_item",
+      "index": 0
+    },
+    {
+      "name": "half a cell",
+      "size": 8,
+      "layout": [{ "item_id": "desk_oak", "x": 1.5, "z": 0, "rot": 0 }],
+      "error": "bad_position",
+      "index": 0
+    },
+    {
+      "name": "rotation out of range",
+      "size": 8,
+      "layout": [{ "item_id": "desk_oak", "x": 1, "z": 0, "rot": 4 }],
+      "error": "bad_position",
+      "index": 0
+    },
+    {
+      "name": "windows on both walls",
+      "size": 8,
+      "layout": [
+        { "item_id": "window_double", "x": 1, "z": 0, "rot": 0 },
+        { "item_id": "window_double", "x": 0, "z": 1, "rot": 1 }
+      ],
+      "error": null
+    },
+    {
+      "name": "two wall items in one slot",
+      "size": 8,
+      "layout": [
+        { "item_id": "window_double", "x": 1, "z": 0, "rot": 0 },
+        { "item_id": "poster", "x": 2, "z": 0, "rot": 0 }
+      ],
+      "error": "overlap",
+      "index": 1
+    },
+    {
+      "name": "a wall item off the wall",
+      "size": 8,
+      "layout": [{ "item_id": "poster", "x": 2, "z": 3, "rot": 0 }],
+      "error": "bad_wall_slot",
+      "index": 0
+    },
+    {
+      "name": "a wall item turned to face away",
+      "size": 8,
+      "layout": [{ "item_id": "clock", "x": 0, "z": 0, "rot": 2 }],
+      "error": "bad_wall_slot",
+      "index": 0
+    },
+    {
+      "name": "fairy lights past the end of the wall",
+      "size": 8,
+      "layout": [{ "item_id": "fairy_lights", "x": 6, "z": 0, "rot": 0 }],
+      "error": "out_of_bounds",
+      "index": 0
+    },
+    {
+      "name": "a bed in the corner",
+      "size": 8,
+      "layout": [{ "item_id": "bed", "x": 0, "z": 0, "rot": 0 }],
+      "error": null
+    }
+  ]
+}

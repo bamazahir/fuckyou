@@ -2,16 +2,67 @@
 import type { ItemDef, LayoutItem } from '../core/grid'
 import catalogJson from './catalog.json'
 
+export const MODELS = [
+  'desk',
+  'chair',
+  'stool',
+  'armchair',
+  'beanbag',
+  'sofa',
+  'bookshelf',
+  'tallshelf',
+  'sidetable',
+  'bed',
+  'crate',
+  'lamp',
+  'plant',
+  'tallplant',
+  'cactus',
+  'globe',
+  'bookpile',
+  'radio',
+  'fishtank',
+  'cat',
+  'telescope',
+  'rug',
+  'roundrug',
+  'window',
+  'poster',
+  'clock',
+  'corkboard',
+  'wallshelf',
+  'lights',
+  'whiteboard',
+] as const
+export type ModelName = (typeof MODELS)[number]
+/** Theme roles an item's main material can take (studyroom-look §1: roles only). */
+export type Tint = 'wood' | 'paper' | 'accent' | 'rest' | 'good' | 'danger'
+
 export interface CatalogItem extends ItemDef {
   name: string
-  model: 'desk' | 'chair' | 'rug' | 'lamp' | 'plant' | 'bookshelf' | 'window'
+  category: 'furniture' | 'decor' | 'wall'
+  model: ModelName
+  tint?: Tint
   light?: boolean
+  price: number
+}
+
+export interface CatalogAccessory {
+  id: string
+  name: string
+  slot: 'head' | 'face'
   price: number
 }
 
 export const CATALOG: ReadonlyMap<string, CatalogItem> = new Map(
   (catalogJson.items as unknown as CatalogItem[]).map((item) => [item.id, item]),
 )
+
+/** Accessories sold in the shop (the starter set in content/avatar.ts stays free, decision 0008). */
+export const SHOP_ACCESSORIES: readonly CatalogAccessory[] = catalogJson.accessories as CatalogAccessory[]
+
+/** What every new person and every new shared room owns from the start (seeded in SQL too). */
+export const STARTER = catalogJson.starter
 
 export const PERSONAL_SIZE = 8
 export const SHARED_SIZE = 12

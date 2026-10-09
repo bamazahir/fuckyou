@@ -12,7 +12,7 @@ import type { Avatar } from '../lib/db'
 import { useTheme } from '../stores/theme'
 import { Bean3D, BEAN_HEIGHT, type BeanState } from './Bean3D'
 import { SceneContext, useScene, type SceneEnv } from './context'
-import { Cushion, ItemModel } from './items'
+import { Cushion, ItemModel } from './models'
 import { LIGHT, readSceneColors } from './palette'
 import { Box } from './parts'
 
@@ -142,8 +142,7 @@ function framePoints(
 function seatPosition(seat: Seat, size: number): [number, number, number] {
   const [x, z] = cellCenter(seat.x, seat.z, size)
   const [fx, fz] = FACING[seat.facing] ?? [0, 1]
-  const nudge = seat.kind === 'chair' ? 0.2 : 0
-  return [x + fx * nudge, seat.kind === 'chair' ? 0.445 : 0.1, z + fz * nudge]
+  return [x + fx * seat.nudge, seat.height, z + fz * seat.nudge]
 }
 
 function CameraRig({ frame }: { frame: IsoFrame }) {
@@ -427,7 +426,7 @@ export default function IsoRoom({
                 <Bean3D
                   id={a.id}
                   avatar={a.avatar}
-                  seat={seat.kind === 'chair' ? 'chair' : 'floor'}
+                  seat={seat.height >= 0.3 ? 'chair' : 'floor'}
                   state={a.state}
                   position={pos}
                   facing={seat.facing * QUARTER}

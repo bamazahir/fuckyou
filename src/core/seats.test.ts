@@ -3,7 +3,7 @@ import type { ItemDef } from './grid'
 import { assignSeats, seatList } from './seats'
 
 const catalog = new Map<string, ItemDef>([
-  ['chair', { id: 'chair', footprint: [1, 1], layer: 'floor', seat: true }],
+  ['chair', { id: 'chair', footprint: [1, 1], layer: 'floor', seat: { height: 0.45, nudge: 0.2 } }],
   ['desk', { id: 'desk', footprint: [1, 1], layer: 'floor' }],
   ['rug', { id: 'rug', footprint: [4, 4], layer: 'rug' }],
 ])
@@ -17,7 +17,14 @@ describe('seatList', () => {
   ]
 
   it('puts chairs first, facing the way the chair faces', () => {
-    expect(seatList(layout, 6, catalog)[0]).toEqual({ x: 2, z: 2, facing: 0, kind: 'chair' })
+    expect(seatList(layout, 6, catalog)[0]).toEqual({
+      x: 2,
+      z: 2,
+      facing: 0,
+      kind: 'chair',
+      height: 0.45,
+      nudge: 0.2,
+    })
   })
 
   it('adds cushions in front of the desks, middle first, in spaced rows', () => {

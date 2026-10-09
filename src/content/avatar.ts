@@ -61,13 +61,22 @@ export const TOP_STYLES: readonly TopStyle[] = ['tee', 'hoodie', 'stripes', 'col
 export const BOTTOM_STYLES: readonly BottomStyle[] = ['trousers', 'shorts', 'skirt']
 
 /** Starter accessories, free for everyone (decision 0008). One per slot: a hat, glasses, headphones, a scarf. */
-export const ACCESSORIES: readonly { id: Accessory; slot: 'head' | 'face' | 'ears' | 'neck' }[] = [
+export const ACCESSORIES: readonly {
+  id: Accessory
+  slot: 'head' | 'face' | 'ears' | 'neck'
+  premium?: true
+}[] = [
   { id: 'beanie', slot: 'head' },
   { id: 'cap', slot: 'head' },
   { id: 'bow', slot: 'head' },
   { id: 'glasses', slot: 'face' },
   { id: 'headphones', slot: 'ears' },
   { id: 'scarf', slot: 'neck' },
+  // Sold in the shop (catalog.json "accessories"); wearable once owned.
+  { id: 'beret', slot: 'head', premium: true },
+  { id: 'cat_ears', slot: 'head', premium: true },
+  { id: 'flower', slot: 'head', premium: true },
+  { id: 'shades', slot: 'face', premium: true },
 ]
 
 export interface Look {
@@ -116,7 +125,15 @@ export function randomAvatar(rand: () => number = Math.random): Avatar {
   return {
     hair: pick(HAIR_STYLES, rand()),
     outfit: { top: pick(TOP_STYLES, rand()), bottom: pick(BOTTOM_STYLES, rand()) },
-    accessories: rand() < 0.5 ? [] : [pick(ACCESSORIES, rand()).id],
+    accessories:
+      rand() < 0.5
+        ? []
+        : [
+            pick(
+              ACCESSORIES.filter((a) => !a.premium),
+              rand(),
+            ).id,
+          ],
     colors: {
       skin: pick(SKIN, rand()),
       hair: pick(HAIR, rand()),

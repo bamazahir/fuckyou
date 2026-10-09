@@ -13,7 +13,18 @@ export interface AvatarColors {
 export type HairStyle = 'short' | 'long' | 'curly' | 'bun'
 export type TopStyle = 'tee' | 'hoodie' | 'stripes' | 'collar'
 export type BottomStyle = 'trousers' | 'shorts' | 'skirt'
-export type Accessory = 'glasses' | 'headphones' | 'beanie' | 'cap' | 'bow' | 'scarf'
+export type Accessory =
+  | 'glasses'
+  | 'headphones'
+  | 'beanie'
+  | 'cap'
+  | 'bow'
+  | 'scarf'
+  // shop accessories (M5): owned through inventory
+  | 'beret'
+  | 'cat_ears'
+  | 'flower'
+  | 'shades'
 
 export interface Avatar {
   colors: AvatarColors

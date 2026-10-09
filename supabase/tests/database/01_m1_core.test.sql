@@ -124,8 +124,8 @@ select is((select focus_seconds from public.sessions where user_id = '00000000-0
 select tests.act_as('00000000-0000-0000-0000-0000000000a1');
 select lives_ok($$ select public.end_session((select id from public.sessions where kind = 'stopwatch')) $$,
   'ending an already-finished session is harmless');
-select is(public.submit_note((select id from public.sessions where kind = 'stopwatch'), '  finished data tables  ', true), 0,
-  'a note can be added');
+select is(public.submit_note((select id from public.sessions where kind = 'stopwatch'), '  finished data tables  ', true), 50,
+  'a note can be added, and pays 1 coin per focus minute (M5)');
 select throws_ok($$ select public.submit_note((select id from public.sessions where kind = 'stopwatch'), 'again', false) $$,
   'note_not_possible', 'a note can only be added once');
 select throws_ok($$ select public.log_event('session_completed', '{}') $$, 'event_not_allowed',

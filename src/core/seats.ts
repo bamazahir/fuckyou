@@ -8,7 +8,12 @@ export interface Seat {
   /** Which way the sitter faces, in quarter turns (0 = +z, 1 = +x). */
   facing: Rot
   kind: 'chair' | 'cushion'
+  /** Seat height and forward nudge (from the catalog; cushions are low and centred). */
+  height: number
+  nudge: number
 }
+
+const CUSHION = { height: 0.1, nudge: 0 }
 
 /** Above this many people, labels hide and show on tap instead (SPEC §10). */
 export const MAX_LABELS = 12
@@ -25,7 +30,10 @@ export function seatList(
   catalog: ReadonlyMap<string, ItemDef>,
 ): Seat[] {
   const chairs = layout.filter((item) => catalog.get(item.item_id)?.seat)
-  const seats: Seat[] = chairs.map((item) => ({ x: item.x, z: item.z, facing: item.rot, kind: 'chair' }))
+  const seats: Seat[] = chairs.map((item) => {
+    const spec = catalog.get(item.item_id)?.seat ?? CUSHION
+    return { x: item.x, z: item.z, facing: item.rot, kind: 'chair', height: spec.height, nudge: spec.nudge }
+  })
   const blocked = blockedCells(layout, catalog)
   const furniture = layout.filter((item) => catalog.get(item.item_id)?.layer === 'floor')
   const start = Math.min(size - 1, Math.max(0, ...furniture.map((i) => i.z + 1)) + 1)
@@ -42,7 +50,7 @@ export function seatList(
     }
   }
   cells.sort((a, b) => a.score - b.score || a.z - b.z || a.x - b.x)
-  for (const { x, z } of cells) seats.push({ x, z, facing: 0, kind: 'cushion' })
+  for (const { x, z } of cells) seats.push({ x, z, facing: 0, kind: 'cushion', ...CUSHION })
   return seats
 }
 

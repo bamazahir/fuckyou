@@ -120,7 +120,7 @@ function Torso({ look, colors, clip }: { look: Look; colors: Avatar['colors']; c
   )
 }
 
-function Accessories({ look, layer }: { look: Look; layer: 'back' | 'front' }) {
+function Accessories({ look, layer, hairColor }: { look: Look; layer: 'back' | 'front'; hairColor: string }) {
   const a = look.accessories
   const c = look.accent
   if (layer === 'back')
@@ -135,6 +135,41 @@ function Accessories({ look, layer }: { look: Look; layer: 'back' | 'front' }) {
     ) : null
   return (
     <>
+      {a.has('cat_ears') && (
+        <>
+          <path d="M28 30 l4 -24 l18 14 z M92 30 l-4 -24 l-18 14 z" fill={hairColor} {...LINE} />
+          <path d="M32 24 l2 -11 l9 7 z M88 24 l-2 -11 l-9 7 z" fill={FACE.blush} />
+        </>
+      )}
+      {a.has('beret') && (
+        <g transform="rotate(-12 60 14)">
+          <ellipse cx="60" cy="16" rx="40" ry="12" fill={c} {...LINE} />
+          <circle cx="60" cy="4" r="3.5" fill={c} {...LINE} />
+        </g>
+      )}
+      {a.has('flower') && (
+        <g transform="translate(86 24)">
+          {[0, 72, 144, 216, 288].map((r) => (
+            <circle
+              key={r}
+              cx={Math.cos((r * Math.PI) / 180) * 6}
+              cy={Math.sin((r * Math.PI) / 180) * 6}
+              r="5"
+              fill={c}
+              {...LINE}
+              strokeWidth={2}
+            />
+          ))}
+          <circle r="3.5" fill={FACE.collar} />
+        </g>
+      )}
+      {a.has('shades') && (
+        <g fill={FACE.eye}>
+          <rect x="37" y="51" width="20" height="13" rx="5" />
+          <rect x="63" y="51" width="20" height="13" rx="5" />
+          <path d="M56 54 h8" stroke={FACE.eye} strokeWidth="3" />
+        </g>
+      )}
       {a.has('glasses') && (
         <g fill="none" stroke={FACE.eye} strokeWidth="2.6">
           <circle cx="47" cy="57" r="9" />
@@ -202,7 +237,7 @@ export function BeanShape({ avatar, transform }: { avatar: Avatar; transform?: s
         <circle cx="82.5" cy="112" r="5.5" fill={colors.skin} {...LINE} />
       </g>
       <Torso look={look} colors={colors} clip={clip} />
-      <Accessories look={look} layer="back" />
+      <Accessories look={look} layer="back" hairColor={colors.hair} />
       {/* head + face */}
       <circle cx="60" cy="50" r="36" fill={colors.skin} {...LINE} />
       <ellipse cx="38" cy="66" rx="6" ry="3.5" fill={FACE.blush} opacity="0.8" />
@@ -213,7 +248,7 @@ export function BeanShape({ avatar, transform }: { avatar: Avatar; transform?: s
       <circle cx="74.6" cy="54.6" r="1.5" fill={FACE.shine} />
       <path d="M56 67 q4 3.5 8 0" fill="none" stroke={FACE.eye} strokeWidth="2.2" strokeLinecap="round" />
       <HairFront style={look.hair} color={colors.hair} hat={hat} />
-      <Accessories look={look} layer="front" />
+      <Accessories look={look} layer="front" hairColor={colors.hair} />
     </g>
   )
 }

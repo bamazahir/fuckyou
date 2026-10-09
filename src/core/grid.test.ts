@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { blockedCells, rotatedSize, slotsOf, validateLayout, type ItemDef } from './grid'
+import fixtures from './__fixtures__/layouts.json'
+import { blockedCells, rotatedSize, slotsOf, validateLayout, type ItemDef, type LayoutItem } from './grid'
 
 const defs: ItemDef[] = [
   { id: 'desk', footprint: [2, 1], layer: 'floor' },
-  { id: 'chair', footprint: [1, 1], layer: 'floor', seat: true },
+  { id: 'chair', footprint: [1, 1], layer: 'floor', seat: { height: 0.45, nudge: 0.2 } },
   { id: 'rug', footprint: [3, 2], layer: 'rug' },
   { id: 'window', footprint: [2, 1], layer: 'wall' },
 ]
@@ -102,5 +103,16 @@ describe('blockedCells', () => {
       catalog,
     )
     expect([...cells].sort()).toEqual(['4,4', '5,4'])
+  })
+})
+
+describe('shared layout fixtures (mirrored by SQL save_layout)', () => {
+  it('give the same verdicts as the fixture file', async () => {
+    const { CATALOG } = await import('../content/layouts')
+    for (const c of fixtures.cases) {
+      const res = validateLayout(c.layout as LayoutItem[], c.size, CATALOG)
+      const expected = c.error === null ? { ok: true } : { ok: false, error: c.error, index: c.index }
+      expect(res, c.name).toEqual(expected)
+    }
   })
 })
