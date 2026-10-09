@@ -101,7 +101,12 @@ export function App() {
     startClockSync()
     void useTimer.getState().loadActive()
     void useRooms.getState().loadBlocks()
-    void usePush.getState().refresh()
+    const uid = useAuth.getState().profile?.id
+    if (uid)
+      void usePush
+        .getState()
+        .claimDevice(uid)
+        .then(() => usePush.getState().refresh())
     const standalone = window.matchMedia('(display-mode: standalone)').matches
     void supabase.rpc('log_event', { p_name: 'app_open', p_props: { standalone } })
     // Finish an invite that was opened before signing in.

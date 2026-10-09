@@ -33,6 +33,14 @@ create or replace function tests.avatar() returns jsonb language sql immutable a
   select '{"colors":{"body":"#6FA06B","skin":"#E8B98F","hair":"#2B2622","top":"#7FB2D9"}}'::jsonb
 $$;
 
+-- A well-formed (65-byte, 0x04-prefixed) push key and a 16-byte auth secret, base64url.
+create or replace function tests.push_key(p_fill text default 'ab') returns text language sql immutable as $$
+  select rtrim(translate(replace(encode('\x04'::bytea || decode(repeat(p_fill, 64), 'hex'), 'base64'), E'\n', ''), '+/', '-_'), '=')
+$$;
+create or replace function tests.push_auth() returns text language sql immutable as $$
+  select rtrim(translate(encode(decode(repeat('cd', 16), 'hex'), 'base64'), '+/', '-_'), '=')
+$$;
+
 grant usage on schema tests to authenticated, anon;
 grant execute on all functions in schema tests to authenticated, anon;
 

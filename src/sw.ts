@@ -23,7 +23,13 @@ interface PushData {
 
 /** Only open paths in this app ("/room/…"), never another site ("//evil.example"). */
 function sameOriginPath(raw: unknown): string {
-  return typeof raw === 'string' && raw.startsWith('/') && !raw.startsWith('//') ? raw : '/'
+  if (typeof raw !== 'string') return '/'
+  try {
+    const url = new URL(raw, self.location.origin)
+    return url.origin === self.location.origin ? url.pathname + url.search : '/'
+  } catch {
+    return '/'
+  }
 }
 
 self.addEventListener('push', (event) => {

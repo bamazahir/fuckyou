@@ -8,8 +8,6 @@ import { buildPushRequest, type VapidKeys } from '../_shared/webpush.ts'
 
 const env = (k: string) => Deno.env.get(k) ?? ''
 const PUSH_KINDS = new Set<string>(['phase_end', 'checkin', 'room_active'])
-// A "break time" that arrives 10 minutes late is noise: drop stale rows instead of retrying.
-const STALE_MS = 10 * 60_000
 
 const makeDb = () =>
   createClient(env('SUPABASE_URL'), env('SUPABASE_SERVICE_ROLE_KEY'), { auth: { persistSession: false } })
@@ -62,11 +60,17 @@ async function sendEmail(db: Db, row: Row): Promise<boolean> {
   return res.ok
 }
 
+/** Constant-time string comparison for the shared secret. */
+function sameSecret(a: string, b: string): boolean {
+  const x = new TextEncoder().encode(a)
+  const y = new TextEncoder().encode(b)
+  let diff = x.length ^ y.length
+  for (let i = 0; i < Math.max(x.length, y.length); i++) diff |= (x[i] ?? 0) ^ (y[i] ?? 0)
+  return diff === 0
+}
+
 async function sendPush(db: Db, row: Row, keys: VapidKeys): Promise<number> {
-  if (
-    !row.user_id ||
-    Date.now() - Date.parse(row.created_at) > STALE_MS * (row.kind === 'room_active' ? 3 : 1)
-  ) {
+  if (!row.user_id) {
     await markSent(db, row.id)
     return 0
   }
@@ -79,21 +83,34 @@ async function sendPush(db: Db, row: Row, keys: VapidKeys): Promise<number> {
   let delivered = 0
   let retry = false
   for (const sub of (subs ?? []) as { id: number; endpoint: string; p256dh: string; auth: string }[]) {
-    const req = await buildPushRequest(sub, message, keys, {
-      ttl: PUSH_TTL[kind],
-      urgency: kind === 'room_active' ? 'normal' : 'high',
-      topic: message.tag,
-    })
-    const res = await fetch(req.url, req.init)
-    if (res.status === 404 || res.status === 410) {
-      // The browser unsubscribed or the subscription expired: forget this device.
-      await db.from('push_subscriptions').delete().eq('id', sub.id)
-    } else if (res.ok) {
-      delivered += 1
-    } else if (res.status === 429 || res.status >= 500) {
-      retry = true
+    // One broken device must never stall the queue for everyone else (audit 2026-10-10 #3).
+    try {
+      const req = await buildPushRequest(sub, message, keys, {
+        ttl: PUSH_TTL[kind],
+        urgency: kind === 'room_active' ? 'normal' : 'high',
+        topic: message.tag,
+      })
+      const res = await fetch(req.url, {
+        ...req.init,
+        redirect: 'manual',
+        signal: AbortSignal.timeout(8_000),
+      })
+      await res.body?.cancel()
+      // 404/410 = the browser dropped this subscription. (A 403 usually means our VAPID setup is
+      // wrong, which must not wipe everyone's devices, so it's left alone.)
+      if (res.status === 404 || res.status === 410) {
+        await db.from('push_subscriptions').delete().eq('id', sub.id)
+      } else if (res.ok) {
+        delivered += 1
+      } else if (res.status === 429 || res.status >= 500) {
+        retry = true
+      }
+    } catch (e) {
+      if (e instanceof DOMException && (e.name === 'TimeoutError' || e.name === 'AbortError')) retry = true
+      else if (e instanceof TypeError)
+        retry = true // network failure
+      else await db.from('push_subscriptions').delete().eq('id', sub.id) // keys that can't be used
     }
-    await res.body?.cancel()
   }
   if (retry && delivered === 0) await retryLater(db, row.id)
   else await markSent(db, row.id)
@@ -101,38 +118,41 @@ async function sendPush(db: Db, row: Row, keys: VapidKeys): Promise<number> {
 }
 
 Deno.serve(async (req) => {
-  if (
-    req.method !== 'POST' ||
-    !env('PUSH_SECRET') ||
-    req.headers.get('x-push-secret') !== env('PUSH_SECRET')
-  ) {
+  const secret = env('PUSH_SECRET')
+  if (req.method !== 'POST' || !secret || !sameSecret(req.headers.get('x-push-secret') ?? '', secret)) {
     return new Response('forbidden', { status: 403 })
   }
   const db = makeDb()
   const keys: VapidKeys = {
     publicKey: env('VAPID_PUBLIC_KEY'),
     privateKey: env('VAPID_PRIVATE_KEY'),
-    subject: env('VAPID_SUBJECT') || 'mailto:hello@example.com',
+    subject: env('VAPID_SUBJECT'),
   }
+  const pushReady = Boolean(keys.publicKey && keys.privateKey && /^(mailto:|https:)/.test(keys.subject))
 
-  const { data: rows, error } = await db
-    .from('notify_queue')
-    .select('id, user_id, kind, payload, created_at')
-    .is('sent_at', null)
-    .lte('send_after', new Date().toISOString())
-    .order('id')
-    .limit(50)
+  // Claimed atomically (and stale pushes retired) in SQL, so overlapping calls never double-send.
+  const { data: rows, error } = await db.rpc('claim_notifications', { p_limit: 50 })
   if (error) return new Response(error.message, { status: 500 })
 
   let emails = 0
   let pushes = 0
+  let failed = 0
   for (const row of (rows ?? []) as Row[]) {
-    if (row.kind === 'consent_email') {
-      if (await sendEmail(db, row)) emails += 1
-    } else if (PUSH_KINDS.has(row.kind)) {
-      if (!keys.publicKey || !keys.privateKey) continue // not configured yet: leave queued
-      pushes += await sendPush(db, row, keys)
+    try {
+      if (row.kind === 'consent_email') {
+        if (await sendEmail(db, row)) emails += 1
+      } else if (PUSH_KINDS.has(row.kind)) {
+        // Not configured: retire the row instead of waking this function every 10 s for nothing.
+        if (!pushReady) await markSent(db, row.id)
+        else pushes += await sendPush(db, row, keys)
+      } else {
+        await markSent(db, row.id)
+      }
+    } catch (e) {
+      failed += 1
+      console.error('push: row failed', row.id, e instanceof Error ? e.message : String(e))
+      await retryLater(db, row.id).catch(() => undefined)
     }
   }
-  return Response.json({ emails, pushes })
+  return Response.json({ emails, pushes, failed, pushReady })
 })

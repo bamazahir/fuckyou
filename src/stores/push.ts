@@ -14,10 +14,18 @@ function readAsked(): boolean {
   }
 }
 
-async function registration(): Promise<ServiceWorkerRegistration | null> {
+const OWNER_KEY = 'studyroom.push.owner'
+
+/** The service worker, waiting at most `waitMs` for it (`ready` never settles without one). */
+async function registration(waitMs = 0): Promise<ServiceWorkerRegistration | null> {
   if (!('serviceWorker' in navigator)) return null
   try {
-    return await navigator.serviceWorker.ready
+    const now = await navigator.serviceWorker.getRegistration()
+    if (now?.active || waitMs === 0) return now ?? null
+    return await Promise.race([
+      navigator.serviceWorker.ready,
+      new Promise<null>((resolve) => window.setTimeout(() => resolve(null), waitMs)),
+    ])
   } catch {
     return null
   }
@@ -25,7 +33,41 @@ async function registration(): Promise<ServiceWorkerRegistration | null> {
 
 async function currentSubscription(): Promise<PushSubscription | null> {
   const reg = await registration()
-  return (await reg?.pushManager.getSubscription()) ?? null
+  try {
+    return (await reg?.pushManager.getSubscription()) ?? null
+  } catch {
+    return null
+  }
+}
+
+function readOwner(): string | null {
+  try {
+    return window.localStorage.getItem(OWNER_KEY)
+  } catch {
+    return null
+  }
+}
+
+function writeOwner(uid: string | null) {
+  try {
+    if (uid) window.localStorage.setItem(OWNER_KEY, uid)
+    else window.localStorage.removeItem(OWNER_KEY)
+  } catch {
+    // storage blocked: the next sign-in re-binds again
+  }
+}
+
+async function saveSubscription(sub: PushSubscription): Promise<boolean> {
+  const json = sub.toJSON() as { endpoint?: string; keys?: { p256dh?: string; auth?: string } }
+  const { error } = await supabase.rpc('save_push_subscription', {
+    p_endpoint: json.endpoint,
+    p_p256dh: json.keys?.p256dh,
+    p_auth: json.keys?.auth,
+  })
+  if (error) return false
+  const { data } = await supabase.auth.getSession()
+  writeOwner(data.session?.user.id ?? null)
+  return true
 }
 
 async function readStatus(): Promise<PushStatus> {
@@ -53,6 +95,8 @@ interface PushState {
   asked: boolean
   prompt: PushPrompt
   refresh: () => Promise<PushStatus>
+  /** After sign-in: a device subscribed for another account is moved to this one (shared devices). */
+  claimDevice: (uid: string) => Promise<void>
   /** Call at first need. Shows the right sheet once (timer) or every time (explicit room toggle). */
   offer: (reason: 'timer' | 'room') => Promise<PushStatus>
   enable: () => Promise<PushStatus>
@@ -69,6 +113,11 @@ export const usePush = create<PushState>((set, get) => ({
     const status = await readStatus()
     set({ status })
     return status
+  },
+
+  claimDevice: async (uid) => {
+    const sub = await currentSubscription()
+    if (sub && readOwner() !== uid) await saveSubscription(sub)
   },
 
   offer: async (reason) => {
@@ -89,7 +138,7 @@ export const usePush = create<PushState>((set, get) => ({
     set({ asked: true, prompt: null })
     const permission = await Notification.requestPermission()
     if (permission !== 'granted') return get().refresh()
-    const reg = await registration()
+    const reg = await registration(5_000)
     if (!reg) return get().refresh()
     try {
       const sub =
@@ -98,13 +147,7 @@ export const usePush = create<PushState>((set, get) => ({
           userVisibleOnly: true,
           applicationServerKey: base64UrlToBytes(vapidPublicKey),
         }))
-      const json = sub.toJSON() as { endpoint?: string; keys?: { p256dh?: string; auth?: string } }
-      const { error } = await supabase.rpc('save_push_subscription', {
-        p_endpoint: json.endpoint,
-        p_p256dh: json.keys?.p256dh,
-        p_auth: json.keys?.auth,
-      })
-      if (error) await sub.unsubscribe()
+      if (!(await saveSubscription(sub))) await sub.unsubscribe()
       else void supabase.rpc('log_event', { p_name: 'push_enabled', p_props: {} })
     } catch {
       // the push service was unreachable; status below reflects what happened
@@ -117,8 +160,9 @@ export const usePush = create<PushState>((set, get) => ({
     const sub = await currentSubscription()
     if (sub) {
       await supabase.rpc('delete_push_subscription', { p_endpoint: sub.endpoint })
-      await sub.unsubscribe()
+      await sub.unsubscribe().catch(() => false)
     }
+    writeOwner(null)
     await get().refresh()
   },
 

@@ -412,7 +412,59 @@ export const copy = {
   },
   privacy: {
     title: 'Privacy',
-    updated: 'Last updated 9 October 2026',
+    updated: 'Last updated 10 October 2026',
+    sections: [
+      {
+        h: 'What Studyroom is',
+        p: [
+          'A study timer where friends can see each other studying in shared rooms. It is built by a student, for students. There are no ads and we never sell data.',
+        ],
+      },
+      {
+        h: 'What we collect',
+        p: [
+          'Your email address, only to sign you in. Nobody else sees it.',
+          'Your handle, display name and cartoon avatar (colors, hairstyle, outfit and accessories).',
+          'Your country and an age range (not your birthday), so we know whether a parent needs to agree first.',
+          'Your timezone (so weeks and days start at your midnight) and your settings, such as theme, timer length and which notifications you want.',
+          'Your study sessions: when they started, how long they were, what you wrote as your status line, and any note you add afterwards.',
+          'The rooms you are in, people you block, and reports you send.',
+          'Simple usage counts (for example “a session was completed”), with no free text in them.',
+          'If a parent needs to agree: their email address, only until they answer (or for up to 7 days), then just a scrambled (hashed) copy and when they agreed.',
+          'If you turn notifications on: an address from your browser’s notification service for each device, and which rooms you want “room is active” alerts for. Turning notifications off or signing out on a device removes its address.',
+        ],
+      },
+      {
+        h: 'Who sees what',
+        p: [
+          'People in a room with you see your display name, handle, avatar, your status line while you study, and your minutes on that room’s leaderboards.',
+          'Your notes are private to you. Nobody outside a room can see who is in it, except a short preview (room name, member count, and who is studying right now) shown to anyone with the invite link.',
+          'The builder of Studyroom can see reports and act on them, and can see overall usage numbers. Numbers used in a university application are totals only, never names or notes.',
+        ],
+      },
+      {
+        h: 'Services we use',
+        p: [
+          'Supabase stores the data and runs sign-in. Vercel serves the app. Resend sends the parent-consent email. Notifications travel through your browser’s own service (Google, Apple, Mozilla or Microsoft) and are encrypted so only your device can read them. Fonts and everything else are served by Studyroom itself; there are no trackers or analytics companies.',
+        ],
+      },
+      {
+        h: 'Your choices',
+        p: [
+          'Download everything we have about you from Profile → Download my data.',
+          'Delete your account from Profile → Delete my account. It is removed for good straight away, including sessions and notes. Rooms you own pass to another member.',
+          'Usage counts that no longer point to a person are kept for up to 400 days, then deleted.',
+          'Notifications waiting to be sent are deleted after 7 days. To stop people guessing invite codes, we briefly count requests per account or internet address; those counts are deleted after a day.',
+          'Your sessions and notes are kept until you delete them with your account.',
+        ],
+      },
+      {
+        h: 'Children and parents',
+        p: [
+          'Studyroom is for ages 13 and up. Where the law asks for it (for example under 16 in Germany or the Netherlands), a parent or guardian must agree by email first. If nobody answers within 7 days, the account is deleted. A parent can withdraw at any time from the link in that email, which deletes the account.',
+        ],
+      },
+    ],
   },
   notFound: { title: 'This room does not exist', back: 'Back home' },
 } as const

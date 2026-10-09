@@ -3,6 +3,7 @@ import { Bean } from '../../components/Bean'
 import { Dialog } from '../../components/Dialog'
 import { ErrorText } from '../../components/Screen'
 import { copy } from '../../content/copy'
+import { shortDuration } from '../../core/room'
 import { formatClock } from '../../core/time'
 import type { RoomMember } from '../../lib/db'
 import { rpcErrorCode, supabase } from '../../lib/supabase'
@@ -27,6 +28,7 @@ export function MemberSheet({
   meId,
   onNudge,
   nudgeMuted = false,
+  statusLine = null,
   onClose,
   onChanged,
 }: {
@@ -37,6 +39,8 @@ export function MemberSheet({
   onNudge: () => void
   /** During a shared focus nobody gets nudged (SPEC §6.2.1). */
   nudgeMuted?: boolean
+  /** What they're working on right now, if they're focusing. */
+  statusLine?: string | null
   onClose: () => void
   onChanged: () => void
 }) {
@@ -46,6 +50,7 @@ export function MemberSheet({
   const [sessions, setSessions] = useState<MemberSession[] | null>(null)
   const [voidFor, setVoidFor] = useState<string | null>(null)
   const [reason, setReason] = useState('')
+  const [weekSeconds, setWeekSeconds] = useState<number | null>(null)
   const isMe = member.user_id === meId
   const canModerate = !isMe && (myRole === 'owner' || (myRole === 'mod' && member.role === 'member'))
 
@@ -61,6 +66,21 @@ export function MemberSheet({
       cancelled = true
     }
   }, [canModerate, roomId, member.user_id, voidFor])
+
+  // This-week minutes in this room (SPEC §5.3 mini profile), from the room's own week board.
+  useEffect(() => {
+    let cancelled = false
+    void supabase.rpc('leaderboard', { p_room_id: roomId, p_tab: 'week' }).then(({ data }) => {
+      if (cancelled) return
+      const row = ((data as { user_id: string; seconds: number }[] | null) ?? []).find(
+        (r) => r.user_id === member.user_id,
+      )
+      setWeekSeconds(row?.seconds ?? 0)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [roomId, member.user_id])
 
   async function run(fn: string, args: Record<string, unknown>) {
     setError(null)
@@ -92,8 +112,12 @@ export function MemberSheet({
               {member.role === 'owner' ? t.roleOwner : t.roleMod}
             </p>
           )}
+          {weekSeconds !== null && (
+            <p className="mt-1 text-sm">{t.weekMinutes(shortDuration(weekSeconds))}</p>
+          )}
         </div>
       </div>
+      {statusLine && <p className="mt-3 rounded-md bg-surface-2 p-2 text-sm">{statusLine}</p>}
 
       {!isMe && (
         <div className="mt-5 flex flex-wrap gap-2">

@@ -292,6 +292,9 @@ export function SharedRoom({ room }: { room: MyRoom }) {
           myRole={myRole}
           meId={me.id}
           nudgeMuted={sharedPhase?.phase === 'focus'}
+          statusLine={
+            byId.get(openMember.user_id)?.state === 'focus' ? byId.get(openMember.user_id)?.status_line : null
+          }
           onNudge={() => {
             if (nudge(openMember.user_id)) toast(`${copy.room.nudge} → ${openMember.display_name}`)
           }}

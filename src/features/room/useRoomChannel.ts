@@ -91,7 +91,12 @@ export function useRoomChannel(roomId: string) {
       .on('broadcast', { event: 'joined' }, refresh)
       .on('broadcast', { event: 'sync' }, () => setSyncKey((k) => k + 1))
       .on('broadcast', { event: 'removed' }, ({ payload }) => {
-        if ((payload as { user_id?: string }).user_id === me.id) setRemoved(true)
+        // Members can broadcast too, so check with the server before believing it (audit #7).
+        if ((payload as { user_id?: string }).user_id === me.id) {
+          void supabase.rpc('room_info', { p_room_id: roomId }).then(({ error }) => {
+            if (error?.message === 'not_a_member') setRemoved(true)
+          })
+        }
         refresh()
       })
       .on('broadcast', { event: 'reaction' }, ({ payload }) => {

@@ -1,5 +1,5 @@
 begin;
-select plan(9);
+select plan(11);
 
 select tests.create_user('00000000-0000-0000-0000-0000000000d1', 'hair@example.com');
 select tests.act_as('00000000-0000-0000-0000-0000000000d1');
@@ -33,6 +33,13 @@ select throws_ok(
 select throws_ok(
   $$ update public.profiles set avatar = jsonb_set(tests.avatar(), '{colors,accent}', '"red"') where id = auth.uid() $$,
   '23514', null, 'the accent color must be a hex color');
+
+select throws_ok(
+  $$ update public.profiles set avatar = tests.avatar() || '{"bio":"hidden message"}' where id = auth.uid() $$,
+  '23514', null, 'unknown avatar fields are rejected (no hidden text channel)');
+select throws_ok(
+  $$ update public.profiles set avatar = tests.avatar() || '{"hair":null}' where id = auth.uid() $$,
+  '23514', null, 'a JSON null does not slip through the checks');
 
 select * from finish();
 rollback;
